@@ -103,7 +103,7 @@ $$('.chart').forEach((chart) => {
 // ---------- data for the home page ----------
 let atlasP;
 function loadAtlas() {
-  atlasP ??= fetch(`${BASE}data/atlas.json`).then((r) => r.json()).then((a) => {
+  atlasP ??= fetch(`${BASE}data/index.json`).then((r) => r.json()).then((a) => {
     a.parsed = a.rows.map(([cidr, ri, ni, sv, f]) => {
       const t = parseTarget(cidr);
       return { cidr, ri, ni, sv, f, t, s4: t.v === 4 ? Number(t.start) : 0, e4: t.v === 4 ? Number(t.end) : 0 };

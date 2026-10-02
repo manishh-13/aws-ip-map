@@ -31,7 +31,7 @@ export function thin(snapshots, now = Date.now()) {
 }
 
 async function main() {
-  const res = await fetch(SOURCE, { headers: { 'user-agent': 'aws-ip-atlas (github.com/manishh-13/aws-ip-atlas)' } });
+  const res = await fetch(SOURCE, { headers: { 'user-agent': 'aws-rangefinder (github.com/manishh-13/aws-rangefinder)' } });
   if (!res.ok) throw new Error(`fetch failed: ${res.status}`);
   const text = await res.text();
   const next = JSON.parse(text);

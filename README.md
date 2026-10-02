@@ -1,10 +1,10 @@
-# AWS IP Atlas: AWS IP address ranges, made easy to look up
+# AWS RangeFinder: AWS IP address ranges, made easy to look up
 
-**Live site: https://manishh-13.github.io/aws-ip-atlas/**
+**Live site: https://manishh-13.github.io/aws-rangefinder/**
 
-AWS publishes every public IP range it uses as one 2.7 MB JSON file, [`ip-ranges.json`](https://ip-ranges.amazonaws.com/ip-ranges.json). AWS IP Atlas turns it into a fast, searchable site. Paste an IP to see whether it belongs to AWS, which region and service it's in, and how long it has been there. Browse every region and service, build allowlists in the format you need, and see exactly what changed each time AWS republishes the file.
+AWS publishes every public IP range it uses as one 2.7 MB JSON file, [`ip-ranges.json`](https://ip-ranges.amazonaws.com/ip-ranges.json). AWS RangeFinder turns it into a fast, searchable site. Paste an IP to see whether it belongs to AWS, which region and service it's in, and how long it has been there. Browse every region and service, build allowlists in the format you need, and see exactly what changed each time AWS republishes the file.
 
-![AWS IP Atlas: IP lookup next to a Hilbert-curve map of the IPv4 internet](docs/screenshot.png)
+![AWS RangeFinder: IP lookup next to a Hilbert-curve map of the IPv4 internet](docs/screenshot.png)
 
 ## What it does
 
@@ -16,12 +16,12 @@ AWS publishes every public IP range it uses as one 2.7 MB JSON file, [`ip-ranges
 - **Plain-text API.** Stable URLs for every region, service and region-service pair:
 
 ```sh
-curl -s https://manishh-13.github.io/aws-ip-atlas/services/cloudfront-origin-facing/ipv4.txt
-curl -s https://manishh-13.github.io/aws-ip-atlas/regions/ap-south-1/s3/ipv4.txt
-curl -s https://manishh-13.github.io/aws-ip-atlas/ranges.csv
+curl -s https://manishh-13.github.io/aws-rangefinder/services/cloudfront-origin-facing/ipv4.txt
+curl -s https://manishh-13.github.io/aws-rangefinder/regions/ap-south-1/s3/ipv4.txt
+curl -s https://manishh-13.github.io/aws-rangefinder/ranges.csv
 ```
 
-See [/api/](https://manishh-13.github.io/aws-ip-atlas/api/) for the full list.
+See [/api/](https://manishh-13.github.io/aws-rangefinder/api/) for the full list.
 
 ## How it works
 
@@ -45,7 +45,7 @@ Requires Node 20 or newer.
 ```sh
 npm run update      # fetch the live ip-ranges.json into data/
 npm run backfill    # optional: rebuild history from the Internet Archive (a few minutes)
-npm run dev         # build and serve at http://localhost:4173/aws-ip-atlas/
+npm run dev         # build and serve at http://localhost:4173/aws-rangefinder/
 npm test
 ```
 

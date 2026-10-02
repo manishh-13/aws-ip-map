@@ -12,7 +12,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function get(url, tries = 5) {
   for (let i = 0; i < tries; i++) {
     try {
-      const res = await fetch(url, { headers: { 'user-agent': 'aws-ip-atlas-backfill (github.com/manishh-13/aws-ip-atlas)' } });
+      const res = await fetch(url, { headers: { 'user-agent': 'aws-rangefinder-backfill (github.com/manishh-13/aws-rangefinder)' } });
       if (res.ok) return await res.text();
       if (res.status === 404) return null;
     } catch {}

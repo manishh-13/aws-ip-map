@@ -287,7 +287,7 @@ ${faqHtml}`;
     faqLD,
   ];
   await page('', layout({
-    title: 'AWS IP address ranges lookup: search any AWS IP, CIDR, region or service | AWS IP Atlas',
+    title: 'AWS IP address ranges lookup: search any AWS IP, CIDR, region or service | ' + SITE.name,
     description: `Check if an IP address belongs to AWS. Instant AWS IP lookup with region, service and network border group, across all ${fmt(SUM.v4p + SUM.v6p)} AWS IPv4 and IPv6 ranges. Allowlist builder, downloads and live change tracking.`,
     path: '', body, jsonld: ld, updated: UPDATED, bodyClass: 'home',
   }), 1.0);
@@ -307,7 +307,7 @@ async function regionPages() {
     const neighbours = REGIONS.filter((x) => x !== r && geoOf(x) === geoOf(r));
     const title = r === 'GLOBAL' ? 'AWS GLOBAL IP ranges (CloudFront, Route 53, Global Accelerator and more)' : `AWS IP ranges for ${r}${l.announced ? `, ${l.name}` : ''}`;
     const h1 = r === 'GLOBAL' ? esc(title) : `AWS IP ranges for <span class="nw">${esc(r)}</span>${l.announced ? `, ${esc(l.name)}` : ''}`;
-    const items = [['', 'Atlas'], ['regions/', 'Regions'], [dir, r]];
+    const items = [['', 'RangeFinder'], ['regions/', 'Regions'], [dir, r]];
     const body = `${crumbs(items)}
 <header class="page-head" style="--c:${rgb(PAL[r].full)}">
   <p class="eyebrow">${esc(GEOS.find((g) => g.id === geoOf(r)).label)}, region code <code>${esc(r)}</code></p>
@@ -325,7 +325,7 @@ ${nbgs.length > 1 ? `<section><h2 class="section-title">Network border groups</h
 <section><h2 class="section-title">All prefixes</h2>${prefixList(list)}</section>
 ${neighbours.length ? `<section class="related"><h2 class="section-title">Nearby regions</h2><p>${neighbours.map((x) => `<a class="tag" href="${href(`regions/${x}/`)}">${esc(x)} <span>${esc(regionLabel(x).name)}</span></a>`).join('')}</p></section>` : ''}`;
     await page(dir, layout({
-      title: `${title} | AWS IP Atlas`,
+      title: `${title} | ${SITE.name}`,
       description: `${fmt(s.v4p)} IPv4 and ${fmt(s.v6p)} IPv6 AWS prefixes for ${r}${l.announced ? ` (${l.name})` : ''}, by service: ${svcs.slice(0, 6).join(', ')}${svcs.length > 6 ? ' and more' : ''}. Download as text, CSV or JSON. Updated ${fmtDate(UPDATED)}.`,
       path: dir, body, updated: UPDATED,
       jsonld: [crumbsLD(items), datasetLD({ name: `AWS IP ranges for ${r}`, description: `Public AWS IPv4 and IPv6 prefixes published for ${r}.`, path: dir, dir, modified: UPDATED })],
@@ -337,7 +337,7 @@ ${neighbours.length ? `<section class="related"><h2 class="section-title">Nearby
       const ss = stats(sub);
       const sdir = `${dir}${slug(sv)}/`;
       const t2 = `AWS ${sv} IP ranges in ${r}${l.announced ? ` (${l.name})` : ''}`;
-      const items2 = [['', 'Atlas'], ['regions/', 'Regions'], [dir, r], [sdir, sv]];
+      const items2 = [['', 'RangeFinder'], ['regions/', 'Regions'], [dir, r], [sdir, sv]];
       const body2 = `${crumbs(items2)}
 <header class="page-head" style="--c:${rgb(PAL[r].full)}">
   <p class="eyebrow">${esc(serviceLabel(sv))} in ${esc(l.full)}</p>
@@ -347,7 +347,7 @@ ${neighbours.length ? `<section class="related"><h2 class="section-title">Nearby
 </header>
 <section><h2 class="section-title">Prefixes</h2>${prefixList(sub, { showServices: sv === 'AMAZON' })}</section>`;
       await page(sdir, layout({
-        title: `${t2} | AWS IP Atlas`,
+        title: `${t2} | ${SITE.name}`,
         description: `${fmt(ss.v4p)} IPv4 and ${fmt(ss.v6p)} IPv6 prefixes for ${serviceLabel(sv)} (${sv}) in ${r}. Copy or download for firewall and security group allowlists. Updated ${fmtDate(UPDATED)}.`,
         path: sdir, body: body2, updated: UPDATED, jsonld: [crumbsLD(items2)],
       }), 0.5);
@@ -355,10 +355,10 @@ ${neighbours.length ? `<section class="related"><h2 class="section-title">Nearby
     }
   }
   // regions index
-  const items = [['', 'Atlas'], ['regions/', 'Regions']];
+  const items = [['', 'RangeFinder'], ['regions/', 'Regions']];
   const body = `${crumbs(items)}<header class="page-head"><h1>AWS IP ranges by region</h1><p class="lede">${REGIONS.length - 1} region codes plus GLOBAL appear in ip-ranges.json today. Pick one for its prefixes, services, history and downloads.</p></header>
 <div class="tw"><table class="svc-table"><thead><tr><th>Region</th><th>Name</th><th>IPv4 prefixes</th><th>IPv6 prefixes</th><th>IPv4 addresses</th></tr></thead><tbody>${REGIONS.map((r) => { const s = stats(rows.filter((x) => x.region === r)); const l = regionLabel(r); return `<tr><td><a href="${href(`regions/${r}/`)}"><code>${r}</code></a></td><td>${esc(l.name)}${l.announced ? '' : ' <span class="badge">new</span>'}</td><td>${fmt(s.v4p)}</td><td>${fmt(s.v6p)}</td><td>${fmtAddrs(s.v4a)}</td></tr>`; }).join('')}</tbody></table></div>`;
-  await page('regions/', layout({ title: 'AWS IP ranges by region (all regions) | AWS IP Atlas', description: `IPv4 and IPv6 address ranges for every AWS region, from us-east-1 to the newest region codes in ip-ranges.json. Updated ${fmtDate(UPDATED)}.`, path: 'regions/', body, updated: UPDATED, jsonld: [crumbsLD(items)] }), 0.9);
+  await page('regions/', layout({ title: 'AWS IP ranges by region (all regions) | ' + SITE.name, description: `IPv4 and IPv6 address ranges for every AWS region, from us-east-1 to the newest region codes in ip-ranges.json. Updated ${fmtDate(UPDATED)}.`, path: 'regions/', body, updated: UPDATED, jsonld: [crumbsLD(items)] }), 0.9);
 }
 
 // ---------- service pages ----------
@@ -370,7 +370,7 @@ async function servicePages() {
     const dir = `services/${slug(sv)}/`;
     const first = history.servicesFirstSeen?.[sv];
     const title = `AWS ${sv} IP ranges${sv === 'AMAZON' ? ' (every AWS range)' : `: ${serviceLabel(sv)}`}`;
-    const items = [['', 'Atlas'], ['services/', 'Services'], [dir, sv]];
+    const items = [['', 'RangeFinder'], ['services/', 'Services'], [dir, sv]];
     const note = {
       AMAZON: 'AMAZON is the superset: every other service code is also in it, and some ranges appear only here.',
       API_GATEWAY: 'AWS documents these addresses as egress only: they are where API Gateway calls your backends from, not where clients connect to.',
@@ -391,34 +391,34 @@ ${regs.map((r) => { const ss = stats(list.filter((x) => x.region === r)); return
 </tbody></table></div></section>
 <section><h2 class="section-title">All ${esc(sv)} prefixes</h2>${prefixList(list, { showServices: sv === 'AMAZON', showRegion: true })}</section>`;
     await page(dir, layout({
-      title: `${title} | AWS IP Atlas`,
+      title: `${title} | ${SITE.name}`,
       description: `Every ${serviceLabel(sv)} (${sv}) IP range AWS publishes: ${fmt(s.v4p)} IPv4 and ${fmt(s.v6p)} IPv6 prefixes in ${regs.length} regions. Search, copy or download as text, CSV or JSON. Updated ${fmtDate(UPDATED)}.`,
       path: dir, body, updated: UPDATED,
       jsonld: [crumbsLD(items), datasetLD({ name: `AWS ${sv} IP ranges`, description: `Public prefixes AWS publishes under the ${sv} service code.`, path: dir, dir, modified: UPDATED })],
     }), 0.8);
     await files(dir, list, { service: sv });
   }
-  const items = [['', 'Atlas'], ['services/', 'Services']];
+  const items = [['', 'RangeFinder'], ['services/', 'Services']];
   const body = `${crumbs(items)}<header class="page-head"><h1>AWS IP ranges by service</h1><p class="lede">${SERVICES.length} service codes appear in ip-ranges.json. AMAZON contains all of them.</p></header>
 <div class="tw"><table class="svc-table"><thead><tr><th>Service code</th><th>Service</th><th>IPv4 prefixes</th><th>IPv6 prefixes</th><th>IPv4 addresses</th></tr></thead><tbody>${SERVICES.map((sv) => { const s = stats(rows.filter((x) => x.services.includes(sv))); return `<tr><td><a href="${href(`services/${slug(sv)}/`)}"><code>${sv}</code></a></td><td>${esc(serviceLabel(sv))}</td><td>${fmt(s.v4p)}</td><td>${fmt(s.v6p)}</td><td>${fmtAddrs(s.v4a)}</td></tr>`; }).join('')}</tbody></table></div>`;
-  await page('services/', layout({ title: 'AWS IP ranges by service (S3, CloudFront, EC2 and more) | AWS IP Atlas', description: `IP ranges for every AWS service code in ip-ranges.json: CloudFront, S3, EC2, Route 53, API Gateway, DynamoDB and more. Updated ${fmtDate(UPDATED)}.`, path: 'services/', body, updated: UPDATED, jsonld: [crumbsLD(items)] }), 0.9);
+  await page('services/', layout({ title: 'AWS IP ranges by service (S3, CloudFront, EC2 and more) | ' + SITE.name, description: `IP ranges for every AWS service code in ip-ranges.json: CloudFront, S3, EC2, Route 53, API Gateway, DynamoDB and more. Updated ${fmtDate(UPDATED)}.`, path: 'services/', body, updated: UPDATED, jsonld: [crumbsLD(items)] }), 0.9);
 }
 
 // ---------- changes + feed ----------
 async function changePages() {
-  const items = [['', 'Atlas'], ['changes/', 'Changes']];
+  const items = [['', 'RangeFinder'], ['changes/', 'Changes']];
   const body = `${crumbs(items)}<header class="page-head"><h1>AWS IP range change log</h1><p class="lede">Every time AWS republishes ip-ranges.json, this page records which prefixes were added and removed. Subscribe with the <a href="${href('changes.xml')}">Atom feed</a>.</p></header>
 <section><h2 class="section-title">Live changes</h2>${changes.length ? `<ol class="events full">${changes.map((ev) => `<li id="sync-${ev.sync}"><time datetime="${ev.t}" data-ago>${fmtDate(ev.t)}</time><span class="counts"><b class="pos">+${fmt(ev.added.length)}</b> <b class="neg">-${fmt(ev.removed.length)}</b> <code class="muted">syncToken ${ev.sync}</code></span>${changeSummary(ev, 8)}<details><summary>Show prefixes</summary><ul class="raw">${ev.added.map((e) => `<li class="add">+ <code>${esc(e[0])}</code> ${esc(e[1])} ${esc(e[3])}</li>`).join('')}${ev.removed.map((e) => `<li class="rem">- <code>${esc(e[0])}</code> ${esc(e[1])} ${esc(e[3])}</li>`).join('')}</ul></details></li>`).join('')}</ol>` : `<p class="empty">Tracking started; the first live change will appear here.</p>`}</section>
 <section><h2 class="section-title">Month by month since ${fmtMonth(ARCHIVE_START)}</h2><p class="muted">Reconstructed from archived copies of the file, comparing the last capture of each month.</p>${ledgerTable(200)}</section>`;
-  await page('changes/', layout({ title: 'AWS IP range changes: live log of ip-ranges.json updates | AWS IP Atlas', description: 'See which AWS IP prefixes were added or removed each time ip-ranges.json changes, plus a month-by-month history since 2015. Atom feed available.', path: 'changes/', body, updated: UPDATED, jsonld: [crumbsLD(items)] }), 0.9);
+  await page('changes/', layout({ title: 'AWS IP range changes: live log of ip-ranges.json updates | ' + SITE.name, description: 'See which AWS IP prefixes were added or removed each time ip-ranges.json changes, plus a month-by-month history since 2015. Atom feed available.', path: 'changes/', body, updated: UPDATED, jsonld: [crumbsLD(items)] }), 0.9);
 
   const entries = changes.slice(0, 50).map((ev) => `<entry><id>${abs(`changes/#sync-${ev.sync}`)}</id><title>AWS IP ranges changed: +${ev.added.length} / -${ev.removed.length}</title><updated>${ev.t}</updated><link href="${abs(`changes/#sync-${ev.sync}`)}"/><content type="html">${esc(changeSummary(ev, 20))}</content></entry>`).join('');
-  await write('changes.xml', `<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom"><title>AWS IP range changes (AWS IP Atlas)</title><id>${abs('changes.xml')}</id><link rel="self" href="${abs('changes.xml')}"/><link href="${abs('changes/')}"/><updated>${UPDATED}</updated><author><name>AWS IP Atlas</name></author>${entries}</feed>`);
+  await write('changes.xml', `<?xml version="1.0" encoding="utf-8"?><feed xmlns="http://www.w3.org/2005/Atom"><title>AWS IP range changes (${SITE.name})</title><id>${abs('changes.xml')}</id><link rel="self" href="${abs('changes.xml')}"/><link href="${abs('changes/')}"/><updated>${UPDATED}</updated><author><name>${SITE.name}</name></author>${entries}</feed>`);
 }
 
 // ---------- API page ----------
 async function apiPage() {
-  const items = [['', 'Atlas'], ['api/', 'API']];
+  const items = [['', 'RangeFinder'], ['api/', 'API']];
   const ep = [
     ['ip-ranges.json', 'Byte-for-byte mirror of the latest AWS file.'],
     ['ipv4.txt', 'Every AWS IPv4 prefix, one per line.'],
@@ -427,7 +427,7 @@ async function apiPage() {
     ['regions/{region}/ipv4.txt', 'One region, for example regions/eu-west-1/ipv4.txt. Also ipv6.txt, ranges.csv, ranges.json.'],
     ['services/{service}/ipv4.txt', 'One service code in lowercase with dashes, for example services/cloudfront-origin-facing/ipv4.txt.'],
     ['regions/{region}/{service}/ipv4.txt', 'One service in one region, for example regions/ap-south-1/s3/ipv4.txt.'],
-    ['data/atlas.json', 'Compact index used by the search on this site.'],
+    ['data/index.json', 'Compact index used by the search on this site.'],
     ['data/history.json', 'IPv4 address totals per region per snapshot since 2015.'],
     ['changes.xml', 'Atom feed of every change.'],
   ];
@@ -448,7 +448,7 @@ url = "${abs('ipv4.txt')}"
 nets = [ipaddress.ip_network(l) for l in urllib.request.urlopen(url).read().decode().split()]
 print(any(ipaddress.ip_address("52.95.110.1") in n for n in nets))</code></pre>
 <p class="muted">For production allowlists that must react within minutes, subscribe to AWS's own SNS topic <code>${SITE.snsTopic}</code> and read the <a href="${SITE.source}">source file</a> directly; this site is a convenience layer on top.</p></section>`;
-  await page('api/', layout({ title: 'AWS IP ranges API: plain-text, CSV and JSON endpoints | AWS IP Atlas', description: 'Stable URLs for AWS IP ranges by region and service in text, CSV and JSON, plus an Atom feed of changes. Ready for curl, Terraform and Python.', path: 'api/', body, updated: UPDATED, jsonld: [crumbsLD(items)] }), 0.7);
+  await page('api/', layout({ title: 'AWS IP ranges API: plain-text, CSV and JSON endpoints | ' + SITE.name, description: 'Stable URLs for AWS IP ranges by region and service in text, CSV and JSON, plus an Atom feed of changes. Ready for curl, Terraform and Python.', path: 'api/', body, updated: UPDATED, jsonld: [crumbsLD(items)] }), 0.7);
 }
 
 // ---------- client data ----------
@@ -466,7 +466,7 @@ async function clientData() {
     former,
     palette: REGIONS.map((r) => [PAL[r].full, PAL[r].partial]),
   };
-  await write('data/atlas.json', JSON.stringify(atlas));
+  await write('data/index.json', JSON.stringify(atlas));
   await write('data/history.json', JSON.stringify(history));
   await write('ip-ranges.json', JSON.stringify(raw));
 }
@@ -479,8 +479,8 @@ async function assets() {
   await fs.cp(stat, DIST, { recursive: true }).catch(() => {});
   await write('robots.txt', `User-agent: *\nAllow: /\nSitemap: ${abs('sitemap.xml')}\n`);
   await write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${pages.map((p) => `<url><loc>${p.loc}</loc><lastmod>${UPDATED.slice(0, 10)}</lastmod><priority>${p.priority.toFixed(1)}</priority></url>`).join('\n')}\n</urlset>\n`);
-  await write('site.webmanifest', JSON.stringify({ name: SITE.name, short_name: 'IP Atlas', start_url: SITE.base, display: 'standalone', background_color: '#f6f1e7', theme_color: '#f6f1e7', icons: [{ src: `${SITE.base}favicon.svg`, sizes: 'any', type: 'image/svg+xml' }] }));
-  await write('404.html', layout({ title: 'Not found | AWS IP Atlas', description: 'This page is not on the map. Search AWS IP ranges or browse by region and service.', path: '404.html', noindex: true, updated: UPDATED, body: `<header class="page-head"><h1>That page isn't on the map.</h1><p class="lede">Try the <a href="${href()}">search</a>, or browse <a href="${href('regions/')}">regions</a> and <a href="${href('services/')}">services</a>.</p></header>` }));
+  await write('site.webmanifest', JSON.stringify({ name: SITE.name, short_name: 'RangeFinder', start_url: SITE.base, display: 'standalone', background_color: '#f6f1e7', theme_color: '#f6f1e7', icons: [{ src: `${SITE.base}favicon.svg`, sizes: 'any', type: 'image/svg+xml' }] }));
+  await write('404.html', layout({ title: 'Not found | ' + SITE.name, description: 'This page is not on the map. Search AWS IP ranges or browse by region and service.', path: '404.html', noindex: true, updated: UPDATED, body: `<header class="page-head"><h1>That page isn't on the map.</h1><p class="lede">Try the <a href="${href()}">search</a>, or browse <a href="${href('regions/')}">regions</a> and <a href="${href('services/')}">services</a>.</p></header>` }));
   await write('.nojekyll', '');
 }
 

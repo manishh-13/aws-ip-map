@@ -1,4 +1,4 @@
-// Local preview that mimics GitHub Pages under the /aws-ip-atlas/ base path.
+// Local preview that mimics GitHub Pages under the /aws-rangefinder/ base path.
 import http from 'node:http';
 import fs from 'node:fs/promises';
 import path from 'node:path';
