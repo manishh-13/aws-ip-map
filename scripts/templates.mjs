@@ -30,8 +30,8 @@ export function layout({ title, description, path, body, jsonld = [], updated, b
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(description)}">
 ${noindex ? '<meta name="robots" content="noindex">' : `<link rel="canonical" href="${canonical}">`}
-<meta name="theme-color" content="#0d1017" media="(prefers-color-scheme: dark)">
-<meta name="theme-color" content="#f3f5fa" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1b1a19" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f1f0ee" media="(prefers-color-scheme: light)">
 <meta name="color-scheme" content="dark light">
 <script>(function(){try{var u=new URLSearchParams(location.search).get('theme');var t=(u==='light'||u==='dark')?u:localStorage.getItem('theme');if(!t)t=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';document.documentElement.dataset.theme=t;}catch(e){}})();</script>
 <meta property="og:type" content="website">
@@ -48,14 +48,13 @@ ${noindex ? '<meta name="robots" content="noindex">' : `<link rel="canonical" hr
 <link rel="manifest" href="${href('site.webmanifest')}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&family=Atkinson+Hyperlegible+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="${href('assets/styles.css')}?v=${updated}">
 ${jsonld.map((j) => `<script type="application/ld+json">${JSON.stringify(j).replace(/</g, '\\u003c')}</script>`).join('\n')}
 <script type="module" src="${href('assets/app.js')}?v=${updated}"></script>
 </head>
 <body class="${bodyClass}" data-base="${SITE.base}">
 <a class="skip" href="#main">Skip to content</a>
-<div class="aurora" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
 <header class="site-head glass">
   <a class="brand" href="${href()}">${LOGO}<span>AWS IP Atlas</span></a>
   <nav aria-label="Main">${nav.map(([p, l]) => `<a href="${href(p)}"${(p === '' ? cur === '' : cur.startsWith(p)) ? ' aria-current="page"' : ''}>${l}</a>`).join('')}

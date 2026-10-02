@@ -50,19 +50,6 @@ $('.theme-toggle')?.addEventListener('click', () => {
   try { localStorage.setItem('theme', next); } catch {}
   dispatchEvent(new Event('themechange'));
 });
-// specular highlight that follows the pointer across glass surfaces
-let glassRaf = 0;
-document.addEventListener('pointermove', (e) => {
-  if (glassRaf || prefersReduced) return;
-  glassRaf = requestAnimationFrame(() => {
-    glassRaf = 0;
-    const g = e.target.closest?.('.glass');
-    if (!g) return;
-    const r = g.getBoundingClientRect();
-    g.style.setProperty('--mx', `${e.clientX - r.left}px`);
-    g.style.setProperty('--my', `${e.clientY - r.top}px`);
-  });
-}, { passive: true });
 
 // ---------- prefix lists (region/service pages) ----------
 $$('.prefix-block').forEach((block) => {
@@ -93,7 +80,7 @@ $$('.chart').forEach((chart) => {
   const data = JSON.parse(chart.dataset.chart);
   const svg = $('svg', chart), tip = $('.chart-tip', chart), cursor = $('.cursor', chart);
   const [W, H] = svg.viewBox.baseVal ? [svg.viewBox.baseVal.width, svg.viewBox.baseVal.height] : [960, 340];
-  const L = 56, R = 16;
+  const L = 56, R = Number(chart.dataset.pr || 16);
   const t0 = Date.parse(data[0].t), t1 = Date.parse(data[data.length - 1].t);
   const xOf = (t) => L + ((Date.parse(t) - t0) / (t1 - t0 || 1)) * (W - L - R);
   const labels = { na: 'North America', sa: 'South America', eu: 'Europe', mea: 'Middle East and Africa', ap: 'Asia Pacific', cn: 'China', gov: 'GovCloud', global: 'Global' };
@@ -278,7 +265,7 @@ function initMap(root) {
       zctx.fillStyle = dim ? 'rgba(128, 136, 160, 0.22)' : `rgb(${c.join(',')})`;
       for (let d = d0; d <= d1; d++) { const [x, y] = d2xy(Z, d); zctx.fillRect(x * ZP, y * ZP, ZP, ZP); }
     }
-    zctx.font = '500 14px "Geist Mono", ui-monospace, monospace'; zctx.textBaseline = 'top'; zctx.fillStyle = cssVar('--map-label');
+    zctx.font = '500 14px "Atkinson Hyperlegible Mono", ui-monospace, monospace'; zctx.textBaseline = 'top'; zctx.fillStyle = cssVar('--map-label');
     for (let o = 0; o < 256; o++) { const [x, y] = d2xy(16, o); zctx.fillText(`${octet}.${o}`, x * 64 + 3, y * 64 + 3); }
   }
   function setZoom(octet, animate = true) {
@@ -307,7 +294,7 @@ function initMap(root) {
     ctx.clearRect(0, 0, MAP_SIDE, MAP_SIDE);
     if (zoom === null) {
       if (focusGeo && cells) ctx.putImageData(dimLayer(focusGeo), 0, 0);
-      ctx.font = '500 15px "Geist Mono", ui-monospace, monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      ctx.font = '500 15px "Atkinson Hyperlegible Mono", ui-monospace, monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
       ctx.fillStyle = cssVar('--map-label');
       for (let o = 0; o < 256; o++) { const [x, y] = d2xy(16, o); ctx.fillText(String(o), x * 64 + 4, y * 64 + 3); }
     }
@@ -378,8 +365,8 @@ function initMap(root) {
   addEventListener('keydown', (e) => { if (e.key === 'Escape' && zoom !== null) setZoom(null); });
   addEventListener('themechange', () => { for (const k in dimCache) delete dimCache[k]; if (zoom !== null && a) paintZoom(zoom); draw(); });
   $$('.legend button', root).forEach((b) => {
-    const on = () => { if (!cells) return; focusGeo = b.dataset.geo; if (zoom !== null) paintZoom(zoom); draw(); $$('.area').forEach((ar) => ar.classList.toggle('faded', ar.dataset.geo !== focusGeo)); b.classList.add('on'); };
-    const off = () => { focusGeo = null; if (zoom !== null) paintZoom(zoom); draw(); $$('.area').forEach((ar) => ar.classList.remove('faded')); b.classList.remove('on'); };
+    const on = () => { if (!cells) return; focusGeo = b.dataset.geo; if (zoom !== null) paintZoom(zoom); draw(); $$('.area, .dlabel').forEach((ar) => ar.classList.toggle('faded', ar.dataset.geo !== focusGeo)); b.classList.add('on'); };
+    const off = () => { focusGeo = null; if (zoom !== null) paintZoom(zoom); draw(); $$('.area, .dlabel').forEach((ar) => ar.classList.remove('faded')); b.classList.remove('on'); };
     b.addEventListener('pointerenter', on); b.addEventListener('focus', on);
     b.addEventListener('pointerleave', off); b.addEventListener('blur', off);
   });

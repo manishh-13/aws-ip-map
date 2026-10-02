@@ -73,7 +73,7 @@ export function regionPalette(regions, geoOf, geos) {
     list.forEach((r, i) => {
       const t = list.length > 1 ? i / (list.length - 1) : 0.5;
       const L = 0.5 + t * 0.22;
-      const C = g.id === 'global' ? 0.09 : g.id === 'gov' ? 0.07 : 0.16;
+      const C = g.id === 'global' ? 0.075 : g.id === 'gov' ? 0.055 : 0.125;
       const H = g.hue + (t - 0.5) * 18;
       pal[r] = { full: oklchToRgb(L, C, H), partial: oklchToRgb(Math.min(0.9, L + 0.16), C * 0.6, H) };
     });
