@@ -1,0 +1,72 @@
+name: Update and deploy
+
+on:
+  schedule:
+    - cron: '17 * * * *' # hourly; AWS republishes ip-ranges.json whenever its ranges change
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    outputs:
+      deploy: ${{ steps.decide.outputs.deploy }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Test
+        if: github.event_name != 'schedule'
+        run: npm test
+
+      - name: Fetch ip-ranges.json
+        id: update
+        run: node scripts/update.mjs
+
+      - name: Commit new data
+        if: steps.update.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          SYNC=$(node -e "console.log(JSON.parse(require('fs').readFileSync('data/ip-ranges.json')).syncToken)")
+          git commit -m "data: ip-ranges.json syncToken ${SYNC}"
+          git push
+
+      - name: Decide whether to deploy
+        id: decide
+        run: echo "deploy=${{ steps.update.outputs.changed == 'true' || github.event_name != 'schedule' }}" >> "$GITHUB_OUTPUT"
+
+      - name: Build site
+        if: steps.decide.outputs.deploy == 'true'
+        run: node scripts/build.mjs
+
+      - uses: actions/configure-pages@v5
+        if: steps.decide.outputs.deploy == 'true'
+      - uses: actions/upload-pages-artifact@v3
+        if: steps.decide.outputs.deploy == 'true'
+        with:
+          path: dist
+
+  deploy:
+    needs: update
+    if: needs.update.outputs.deploy == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
