@@ -1,15 +1,15 @@
-# AWS IP Atlas: search, map and track every AWS IP range
+# AWS IP Atlas: AWS IP address ranges, made easy to look up
 
 **Live site: https://manishh-13.github.io/aws-ip-atlas/**
 
-A free, always-current explorer for the AWS public IP address ranges in [`ip-ranges.json`](https://ip-ranges.amazonaws.com/ip-ranges.json). Paste an IP to see whether it belongs to AWS, which region and service it's in, and how long it has been there. Browse every region and service, build allowlists in the format you need, and see exactly what changed each time AWS republishes the file.
+AWS publishes every public IP range it uses as one 2.7 MB JSON file, [`ip-ranges.json`](https://ip-ranges.amazonaws.com/ip-ranges.json). AWS IP Atlas turns it into a fast, searchable site. Paste an IP to see whether it belongs to AWS, which region and service it's in, and how long it has been there. Browse every region and service, build allowlists in the format you need, and see exactly what changed each time AWS republishes the file.
 
 ![AWS IP Atlas: IP lookup next to a Hilbert-curve map of the IPv4 internet](docs/screenshot.png)
 
 ## What it does
 
-- **Is this IP AWS?** Paste one IPv4 or IPv6 address, a CIDR, or a whole list (log lines are fine). You get the most specific matching prefix, region, service codes, network border group and the month it first appeared. If the address used to be AWS, it tells you when.
-- **A map of the whole IPv4 internet.** All 4.3 billion addresses laid out on a Hilbert curve, with AWS space coloured by region. Click any /8 to zoom in to /24 detail; search an IP and the map flies to it.
+- **Look up any IP.** Paste one IPv4 or IPv6 address, a CIDR, or a whole list (log lines are fine). You get the most specific matching prefix, region, service codes, network border group and the month it first appeared. If the address used to be AWS, it tells you when.
+- **A 3D map of the whole IPv4 internet.** All 4.3 billion addresses laid out on a Hilbert curve, with AWS space coloured by region, on a glass slab that tilts toward your cursor. Click any /8 to zoom in to /24 detail; search an IP and the map flies to it.
 - **11 years of history.** Growth since 2015 and the month each region code first appeared, rebuilt from archived versions of the file. Region codes often show up long before a region launches, and the site flags codes AWS hasn't named yet.
 - **Change log and Atom feed.** Every new `syncToken` is diffed prefix by prefix.
 - **Allowlist builder.** Pick a service, region and IP version, then get plain text, CSV, JSON, Terraform, nginx, Apache, iptables or an `aws ec2 create-managed-prefix-list` command. Optional merging collapses overlapping and adjacent ranges into the smallest CIDR list.

@@ -51,6 +51,49 @@ $('.theme-toggle')?.addEventListener('click', () => {
   dispatchEvent(new Event('themechange'));
 });
 
+// ---------- 3D glass slab + environment light (pointer-driven, never autonomous) ----------
+const finePointer = matchMedia('(hover: hover) and (pointer: fine)').matches;
+const slab = $('.slab');
+if (slab && finePointer && !prefersReduced) {
+  const hero = $('.hero');
+  const REST = { rx: 5, ry: -9 };
+  let target = { ...REST }, cur = { ...REST }, flat = false, raf = 0;
+  const step = () => {
+    cur.rx += (target.rx - cur.rx) * 0.12; cur.ry += (target.ry - cur.ry) * 0.12;
+    slab.style.setProperty('--rx', `${cur.rx.toFixed(2)}deg`);
+    slab.style.setProperty('--ry', `${cur.ry.toFixed(2)}deg`);
+    raf = Math.abs(target.rx - cur.rx) + Math.abs(target.ry - cur.ry) > 0.02 ? requestAnimationFrame(step) : 0;
+  };
+  const kick = () => { if (!raf) raf = requestAnimationFrame(step); };
+  hero.addEventListener('pointermove', (e) => {
+    const r = slab.getBoundingClientRect();
+    slab.style.setProperty('--gx', `${((e.clientX - r.left) / r.width) * 100}%`);
+    slab.style.setProperty('--gy', `${((e.clientY - r.top) / r.height) * 100}%`);
+    if (flat) return;
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    const dx = Math.max(-1, Math.min(1, (e.clientX - cx) / (innerWidth / 2)));
+    const dy = Math.max(-1, Math.min(1, (e.clientY - cy) / (innerHeight / 2)));
+    target = { rx: REST.rx - dy * 7, ry: REST.ry + dx * 10 }; kick();
+  });
+  hero.addEventListener('pointerleave', () => { target = { ...REST }; kick(); });
+  // when the pointer reaches the map, the slab turns to face you so pixel picking is exact
+  const wrap = $('.map-wrap', slab);
+  wrap.addEventListener('pointerenter', () => { flat = true; slab.classList.add('facing'); target = { rx: 0, ry: 0 }; kick(); });
+  wrap.addEventListener('pointerleave', () => { flat = false; slab.classList.remove('facing'); });
+}
+const env = $('.env');
+if (env && finePointer && !prefersReduced) {
+  let pending = 0;
+  addEventListener('pointermove', (e) => {
+    if (pending) return;
+    pending = requestAnimationFrame(() => {
+      pending = 0;
+      env.style.setProperty('--px', (e.clientX / innerWidth - 0.5).toFixed(3));
+      env.style.setProperty('--py', (e.clientY / innerHeight - 0.5).toFixed(3));
+    });
+  }, { passive: true });
+}
+
 // ---------- prefix lists (region/service pages) ----------
 $$('.prefix-block').forEach((block) => {
   const input = $('.filter', block), items = $$('.prefixes li', block);
@@ -265,7 +308,7 @@ function initMap(root) {
       zctx.fillStyle = dim ? 'rgba(128, 136, 160, 0.22)' : `rgb(${c.join(',')})`;
       for (let d = d0; d <= d1; d++) { const [x, y] = d2xy(Z, d); zctx.fillRect(x * ZP, y * ZP, ZP, ZP); }
     }
-    zctx.font = '500 14px "Atkinson Hyperlegible Mono", ui-monospace, monospace'; zctx.textBaseline = 'top'; zctx.fillStyle = cssVar('--map-label');
+    zctx.font = '500 14px ui-monospace, "SF Mono", Menlo, monospace'; zctx.textBaseline = 'top'; zctx.fillStyle = cssVar('--map-label');
     for (let o = 0; o < 256; o++) { const [x, y] = d2xy(16, o); zctx.fillText(`${octet}.${o}`, x * 64 + 3, y * 64 + 3); }
   }
   function setZoom(octet, animate = true) {
@@ -294,7 +337,7 @@ function initMap(root) {
     ctx.clearRect(0, 0, MAP_SIDE, MAP_SIDE);
     if (zoom === null) {
       if (focusGeo && cells) ctx.putImageData(dimLayer(focusGeo), 0, 0);
-      ctx.font = '500 15px "Atkinson Hyperlegible Mono", ui-monospace, monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      ctx.font = '500 15px ui-monospace, "SF Mono", Menlo, monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
       ctx.fillStyle = cssVar('--map-label');
       for (let o = 0; o < 256; o++) { const [x, y] = d2xy(16, o); ctx.fillText(String(o), x * 64 + 4, y * 64 + 3); }
     }

@@ -196,36 +196,37 @@ async function home(cellsInfo) {
   const body = `
 <section class="hero">
   <div class="hero-copy">
-    <p class="status"><span class="lamp on" aria-hidden="true"></span>Live. AWS last updated its ranges <time datetime="${UPDATED}" data-ago>${fmtDate(UPDATED)}</time></p>
-    <h1>Is this IP <span class="accent">AWS?</span></h1>
-    <p class="lede">Check any IP address, CIDR or list against all ${fmt(SUM.v4p + SUM.v6p)} AWS public IP ranges. Get the region, service and network border group in an instant.</p>
+    <p class="status"><span class="lamp on" aria-hidden="true"></span>Live, synced with AWS <time datetime="${UPDATED}" data-ago>${fmtDate(UPDATED)}</time></p>
+    <h1>AWS IP address ranges, made easy to look up.</h1>
+    <p class="lede">AWS publishes all ${fmt(SUM.v4p + SUM.v6p)} of its public IP ranges as one 2.7 MB JSON file. Search them here instead: paste an IP, a CIDR or a whole list and get the region, service and network border group instantly.</p>
     <form class="search" role="search" action="${href()}" method="get" autocomplete="off">
       <label for="q" class="sr">IP address, CIDR, region or service</label>
       <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="m16 16 4.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       <textarea id="q" name="q" rows="1" spellcheck="false" placeholder="Paste an IP, CIDR, or a list..."></textarea>
-      <button type="submit" class="btn primary">Check</button>
+      <button type="submit" class="btn primary">Look up</button>
     </form>
     <p class="try">Try <button type="button" data-q="18.180.88.10">18.180.88.10</button><button type="button" data-q="2600:1f18::1">2600:1f18::1</button><button type="button" data-q="52.94.0.0/16">52.94.0.0/16</button><button type="button" data-q="ap-south-1">ap-south-1</button><button type="button" data-q="3.5.140.2&#10;13.32.0.1&#10;8.8.8.8">a list</button></p>
     <div id="results" class="results" aria-live="polite"></div>
   </div>
-  <figure class="atlas" id="map">
+  <figure class="atlas slab" id="map">
+    <div class="glare" aria-hidden="true"></div>
     <div class="map-wrap">
       <img class="map-img" src="${href('map.png')}?v=${SUM.sync}" width="1024" height="1024" alt="Hilbert-curve map of the entire IPv4 internet with AWS's published ranges coloured by region">
       <canvas class="map-zoom" width="1024" height="1024" aria-hidden="true"></canvas>
       <canvas class="map-overlay" width="1024" height="1024" aria-hidden="true"></canvas>
-      <button type="button" class="map-back" hidden>Whole internet</button>
+      <button type="button" class="map-back" hidden>Show whole internet</button>
       <div class="loupe" aria-hidden="true"><canvas width="176" height="176"></canvas></div>
       <div class="map-tip" role="status" hidden></div>
     </div>
     <figcaption>
-      <div class="map-cap-row"><p class="map-where">The whole IPv4 internet</p><p class="map-share"><b>${fmtAddrs(SUM.v4a)}</b> addresses · ${share}% is AWS</p></div>
+      <div class="map-cap-row"><p class="map-where">The whole IPv4 internet</p><p class="map-share"><b>${fmtAddrs(SUM.v4a)}</b> AWS addresses, ${share}% of IPv4</p></div>
       <p class="map-note">All 4.3 billion IPv4 addresses on a Hilbert curve. Each tile is a /8, each pixel a /20. Click a tile to zoom to /24 detail; search an IP and the map flies to it.</p>
       <ul class="legend">${geoTotals.filter((g) => g.a > 0).map((g) => `<li><button type="button" data-geo="${g.id}" style="--c:${g.mid ? rgb(g.mid) : 'gray'}"><i></i>${esc(g.label)}<span>${fmtAddrs(g.a)}</span></button></li>`).join('')}</ul>
     </figcaption>
   </figure>
 </section>
 
-<section class="builder" id="allowlist">
+<section class="builder glass" id="allowlist">
   <div class="section-head"><h2 class="section-title">Allowlist builder</h2><p>Pick a service and region, choose a format, copy. Turn on merging to collapse overlapping and adjacent prefixes into the smallest CIDR list, which helps when security groups or prefix lists cap your entries.</p></div>
   <form class="builder-form">
     <label>Service<select name="service">${SERVICES.map((s) => `<option value="${s}"${s === 'CLOUDFRONT' ? ' selected' : ''}>${esc(s)}: ${esc(serviceLabel(s))}</option>`).join('')}</select></label>
@@ -237,7 +238,7 @@ async function home(cellsInfo) {
   <div class="builder-out"><div class="out-head"><span class="out-count">Loading ranges...</span><span><button type="button" class="btn ghost" data-out-copy>Copy</button><button type="button" class="btn ghost" data-out-download>Download</button></span></div><textarea readonly spellcheck="false" aria-label="Generated allowlist"></textarea></div>
 </section>
 
-<section class="insights" id="stats">
+<section class="insights glass" id="stats">
   <div class="section-head"><h2 class="section-title">AWS's IPv4 space grew ${growth ? `${growth}x` : ''} since ${firstSnap ? fmtMonth(firstSnap.t) : '2015'}</h2><p>From ${firstSnap ? fmtAddrs(firstSnap.v4a) : ''} to ${fmtAddrs(SUM.v4a)} public addresses, ${share}% of all IPv4. Reconstructed from ${fmt(history.snapshots.length)} archived versions of ip-ranges.json; hover the chart to read any month.</p></div>
   <dl class="plate" aria-label="Current totals">
     <div><dt>IPv4 addresses</dt><dd>${fmtAddrs(SUM.v4a)}</dd></div>
@@ -267,7 +268,7 @@ async function home(cellsInfo) {
   <div class="browse-col">
     <h2 class="section-title">Browse by service</h2>
     <ul class="index">${SERVICES.map((s) => { const n = rows.filter((x) => x.services.includes(s)).length; return `<li><a href="${href(`services/${slug(s)}/`)}"><code>${esc(s)}</code><span>${esc(serviceLabel(s))}</span><small>${fmt(n)}</small></a></li>`; }).join('')}</ul>
-    <div class="api-teaser">
+    <div class="api-teaser glass">
       <h3>For scripts and pipelines</h3>
       <p>Every region, service and region-service pair has plain-text and CSV files at a stable URL, regenerated on every change.</p>
       <code data-copy>curl -s ${abs('services/cloudfront/ipv4.txt')}</code>
@@ -284,7 +285,7 @@ ${faqHtml}`;
     faqLD,
   ];
   await page('', layout({
-    title: 'AWS IP Lookup: check if an IP is AWS | Live AWS IP ranges | AWS IP Atlas',
+    title: 'AWS IP address ranges lookup: search any AWS IP, CIDR, region or service | AWS IP Atlas',
     description: `Check if an IP address belongs to AWS. Instant AWS IP lookup with region, service and network border group, across all ${fmt(SUM.v4p + SUM.v6p)} AWS IPv4 and IPv6 ranges. Allowlist builder, downloads and live change tracking.`,
     path: '', body, jsonld: ld, updated: UPDATED, bodyClass: 'home',
   }), 1.0);
@@ -306,8 +307,8 @@ async function regionPages() {
     const h1 = r === 'GLOBAL' ? esc(title) : `AWS IP ranges for <span class="nw">${esc(r)}</span>${l.announced ? `, ${esc(l.name)}` : ''}`;
     const items = [['', 'Atlas'], ['regions/', 'Regions'], [dir, r]];
     const body = `${crumbs(items)}
-<header class="page-head" style="--c:${rgb(PAL[r].full)}">
-  <p class="eyebrow">${esc(GEOS.find((g) => g.id === geoOf(r)).label)} · region code <code>${esc(r)}</code></p>
+<header class="page-head glass" style="--c:${rgb(PAL[r].full)}">
+  <p class="eyebrow">${esc(GEOS.find((g) => g.id === geoOf(r)).label)}, region code <code>${esc(r)}</code></p>
   <h1>${h1}</h1>
   <p class="lede">As of <time datetime="${UPDATED}">${fmtDate(UPDATED)}</time>, AWS publishes ${fmt(s.v4p)} IPv4 prefixes (${fmtAddrs(s.v4a)} addresses) and ${fmt(s.v6p)} IPv6 prefixes ${r === 'GLOBAL' ? 'that are not tied to one region' : `for ${l.announced ? esc(l.name) : `<code>${r}</code>, a region code AWS hasn't published a name for yet`}`}, across ${svcs.length} service codes.${fsDate && fsDate > ARCHIVE_START.slice(0, 10) ? ` It first appeared in ip-ranges.json in ${fmtMonth(fsDate)}.` : ''}</p>
   ${statLine(s)}
@@ -336,8 +337,8 @@ ${neighbours.length ? `<section class="related"><h2 class="section-title">Nearby
       const t2 = `AWS ${sv} IP ranges in ${r}${l.announced ? ` (${l.name})` : ''}`;
       const items2 = [['', 'Atlas'], ['regions/', 'Regions'], [dir, r], [sdir, sv]];
       const body2 = `${crumbs(items2)}
-<header class="page-head" style="--c:${rgb(PAL[r].full)}">
-  <p class="eyebrow">${esc(serviceLabel(sv))} · ${esc(l.full)}</p>
+<header class="page-head glass" style="--c:${rgb(PAL[r].full)}">
+  <p class="eyebrow">${esc(serviceLabel(sv))} in ${esc(l.full)}</p>
   <h1>AWS <span class="nw">${esc(sv)}</span> IP ranges in <span class="nw">${esc(r)}</span>${l.announced ? ` (${esc(l.name)})` : ''}</h1>
   <p class="lede">${fmt(ss.v4p)} IPv4 prefixes (${fmtAddrs(ss.v4a)} addresses) and ${fmt(ss.v6p)} IPv6 prefixes tagged <code>${esc(sv)}</code> in <a href="${href(dir)}">${esc(r)}</a>, as of <time datetime="${UPDATED}">${fmtDate(UPDATED)}</time>. See this service in <a href="${href(`services/${slug(sv)}/`)}">every region</a>.</p>
   ${downloads(sdir, `${sv} in ${r}`)}
@@ -353,7 +354,7 @@ ${neighbours.length ? `<section class="related"><h2 class="section-title">Nearby
   }
   // regions index
   const items = [['', 'Atlas'], ['regions/', 'Regions']];
-  const body = `${crumbs(items)}<header class="page-head"><h1>AWS IP ranges by region</h1><p class="lede">${REGIONS.length - 1} region codes plus GLOBAL appear in ip-ranges.json today. Pick one for its prefixes, services, history and downloads.</p></header>
+  const body = `${crumbs(items)}<header class="page-head glass"><h1>AWS IP ranges by region</h1><p class="lede">${REGIONS.length - 1} region codes plus GLOBAL appear in ip-ranges.json today. Pick one for its prefixes, services, history and downloads.</p></header>
 <div class="tw"><table class="svc-table"><thead><tr><th>Region</th><th>Name</th><th>IPv4 prefixes</th><th>IPv6 prefixes</th><th>IPv4 addresses</th></tr></thead><tbody>${REGIONS.map((r) => { const s = stats(rows.filter((x) => x.region === r)); const l = regionLabel(r); return `<tr><td><a href="${href(`regions/${r}/`)}"><code>${r}</code></a></td><td>${esc(l.name)}${l.announced ? '' : ' <span class="badge">new</span>'}</td><td>${fmt(s.v4p)}</td><td>${fmt(s.v6p)}</td><td>${fmtAddrs(s.v4a)}</td></tr>`; }).join('')}</tbody></table></div>`;
   await page('regions/', layout({ title: 'AWS IP ranges by region (all regions) | AWS IP Atlas', description: `IPv4 and IPv6 address ranges for every AWS region, from us-east-1 to the newest region codes in ip-ranges.json. Updated ${fmtDate(UPDATED)}.`, path: 'regions/', body, updated: UPDATED, jsonld: [crumbsLD(items)] }), 0.9);
 }
@@ -375,7 +376,7 @@ async function servicePages() {
       S3: 'S3 uses EC2 resources, so some of these ranges also appear under EC2. AWS says the overlapping ranges are used only by S3.',
     }[sv];
     const body = `${crumbs(items)}
-<header class="page-head">
+<header class="page-head glass">
   <p class="eyebrow">Service code <code>${esc(sv)}</code></p>
   <h1>${esc(title)}</h1>
   <p class="lede">${fmt(s.v4p)} IPv4 prefixes (${fmtAddrs(s.v4a)} addresses) and ${fmt(s.v6p)} IPv6 prefixes across ${regs.length} region codes, as of <time datetime="${UPDATED}">${fmtDate(UPDATED)}</time>.${first && first > ARCHIVE_START.slice(0, 10) ? ` This service code first appeared in the file in ${fmtMonth(first)}.` : ''}${note ? ` ${note}` : ''}</p>
@@ -396,7 +397,7 @@ ${regs.map((r) => { const ss = stats(list.filter((x) => x.region === r)); return
     await files(dir, list, { service: sv });
   }
   const items = [['', 'Atlas'], ['services/', 'Services']];
-  const body = `${crumbs(items)}<header class="page-head"><h1>AWS IP ranges by service</h1><p class="lede">${SERVICES.length} service codes appear in ip-ranges.json. AMAZON contains all of them.</p></header>
+  const body = `${crumbs(items)}<header class="page-head glass"><h1>AWS IP ranges by service</h1><p class="lede">${SERVICES.length} service codes appear in ip-ranges.json. AMAZON contains all of them.</p></header>
 <div class="tw"><table class="svc-table"><thead><tr><th>Service code</th><th>Service</th><th>IPv4 prefixes</th><th>IPv6 prefixes</th><th>IPv4 addresses</th></tr></thead><tbody>${SERVICES.map((sv) => { const s = stats(rows.filter((x) => x.services.includes(sv))); return `<tr><td><a href="${href(`services/${slug(sv)}/`)}"><code>${sv}</code></a></td><td>${esc(serviceLabel(sv))}</td><td>${fmt(s.v4p)}</td><td>${fmt(s.v6p)}</td><td>${fmtAddrs(s.v4a)}</td></tr>`; }).join('')}</tbody></table></div>`;
   await page('services/', layout({ title: 'AWS IP ranges by service (S3, CloudFront, EC2 and more) | AWS IP Atlas', description: `IP ranges for every AWS service code in ip-ranges.json: CloudFront, S3, EC2, Route 53, API Gateway, DynamoDB and more. Updated ${fmtDate(UPDATED)}.`, path: 'services/', body, updated: UPDATED, jsonld: [crumbsLD(items)] }), 0.9);
 }
@@ -404,7 +405,7 @@ ${regs.map((r) => { const ss = stats(list.filter((x) => x.region === r)); return
 // ---------- changes + feed ----------
 async function changePages() {
   const items = [['', 'Atlas'], ['changes/', 'Changes']];
-  const body = `${crumbs(items)}<header class="page-head"><h1>AWS IP range change log</h1><p class="lede">Every time AWS republishes ip-ranges.json, this page records which prefixes were added and removed. Subscribe with the <a href="${href('changes.xml')}">Atom feed</a>.</p></header>
+  const body = `${crumbs(items)}<header class="page-head glass"><h1>AWS IP range change log</h1><p class="lede">Every time AWS republishes ip-ranges.json, this page records which prefixes were added and removed. Subscribe with the <a href="${href('changes.xml')}">Atom feed</a>.</p></header>
 <section><h2 class="section-title">Live changes</h2>${changes.length ? `<ol class="events full">${changes.map((ev) => `<li id="sync-${ev.sync}"><time datetime="${ev.t}" data-ago>${fmtDate(ev.t)}</time><span class="counts"><b class="pos">+${fmt(ev.added.length)}</b> <b class="neg">-${fmt(ev.removed.length)}</b> <code class="muted">syncToken ${ev.sync}</code></span>${changeSummary(ev, 8)}<details><summary>Show prefixes</summary><ul class="raw">${ev.added.map((e) => `<li class="add">+ <code>${esc(e[0])}</code> ${esc(e[1])} ${esc(e[3])}</li>`).join('')}${ev.removed.map((e) => `<li class="rem">- <code>${esc(e[0])}</code> ${esc(e[1])} ${esc(e[3])}</li>`).join('')}</ul></details></li>`).join('')}</ol>` : `<p class="empty">Tracking started; the first live change will appear here.</p>`}</section>
 <section><h2 class="section-title">Month by month since ${fmtMonth(ARCHIVE_START)}</h2><p class="muted">Reconstructed from archived copies of the file, comparing the last capture of each month.</p>${ledgerTable(200)}</section>`;
   await page('changes/', layout({ title: 'AWS IP range changes: live log of ip-ranges.json updates | AWS IP Atlas', description: 'See which AWS IP prefixes were added or removed each time ip-ranges.json changes, plus a month-by-month history since 2015. Atom feed available.', path: 'changes/', body, updated: UPDATED, jsonld: [crumbsLD(items)] }), 0.9);
@@ -428,7 +429,7 @@ async function apiPage() {
     ['data/history.json', 'IPv4 address totals per region per snapshot since 2015.'],
     ['changes.xml', 'Atom feed of every change.'],
   ];
-  const body = `${crumbs(items)}<header class="page-head"><h1>AWS IP ranges API</h1><p class="lede">Static files at stable URLs, rebuilt within the hour of every change. No key, no rate limit beyond GitHub Pages, and the files are small enough to fetch in a deploy step.</p></header>
+  const body = `${crumbs(items)}<header class="page-head glass"><h1>AWS IP ranges API</h1><p class="lede">Static files at stable URLs, rebuilt within the hour of every change. No key, no rate limit beyond GitHub Pages, and the files are small enough to fetch in a deploy step.</p></header>
 <section><div class="tw"><table class="svc-table api"><thead><tr><th>Endpoint</th><th>What you get</th></tr></thead><tbody>${ep.map(([p, d]) => `<tr><td><code data-copy>${abs(p)}</code></td><td>${esc(d)}</td></tr>`).join('')}</tbody></table></div></section>
 <section><h2 class="section-title">Examples</h2>
 <h3>Shell</h3><pre><code data-copy>curl -s ${abs('services/cloudfront-origin-facing/ipv4.txt')}</code></pre>
@@ -477,7 +478,7 @@ async function assets() {
   await write('robots.txt', `User-agent: *\nAllow: /\nSitemap: ${abs('sitemap.xml')}\n`);
   await write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${pages.map((p) => `<url><loc>${p.loc}</loc><lastmod>${UPDATED.slice(0, 10)}</lastmod><priority>${p.priority.toFixed(1)}</priority></url>`).join('\n')}\n</urlset>\n`);
   await write('site.webmanifest', JSON.stringify({ name: SITE.name, short_name: 'IP Atlas', start_url: SITE.base, display: 'standalone', background_color: '#f6f1e7', theme_color: '#f6f1e7', icons: [{ src: `${SITE.base}favicon.svg`, sizes: 'any', type: 'image/svg+xml' }] }));
-  await write('404.html', layout({ title: 'Not found | AWS IP Atlas', description: 'This page is not on the map. Search AWS IP ranges or browse by region and service.', path: '404.html', noindex: true, updated: UPDATED, body: `<header class="page-head"><h1>That page isn't on the map.</h1><p class="lede">Try the <a href="${href()}">search</a>, or browse <a href="${href('regions/')}">regions</a> and <a href="${href('services/')}">services</a>.</p></header>` }));
+  await write('404.html', layout({ title: 'Not found | AWS IP Atlas', description: 'This page is not on the map. Search AWS IP ranges or browse by region and service.', path: '404.html', noindex: true, updated: UPDATED, body: `<header class="page-head glass"><h1>That page isn't on the map.</h1><p class="lede">Try the <a href="${href()}">search</a>, or browse <a href="${href('regions/')}">regions</a> and <a href="${href('services/')}">services</a>.</p></header>` }));
   await write('.nojekyll', '');
 }
 
