@@ -51,49 +51,6 @@ $('.theme-toggle')?.addEventListener('click', () => {
   dispatchEvent(new Event('themechange'));
 });
 
-// ---------- 3D glass slab + environment light (pointer-driven, never autonomous) ----------
-const finePointer = matchMedia('(hover: hover) and (pointer: fine)').matches;
-const slab = $('.slab');
-if (slab && finePointer && !prefersReduced) {
-  const hero = $('.hero');
-  const REST = { rx: 5, ry: -9 };
-  let target = { ...REST }, cur = { ...REST }, flat = false, raf = 0;
-  const step = () => {
-    cur.rx += (target.rx - cur.rx) * 0.12; cur.ry += (target.ry - cur.ry) * 0.12;
-    slab.style.setProperty('--rx', `${cur.rx.toFixed(2)}deg`);
-    slab.style.setProperty('--ry', `${cur.ry.toFixed(2)}deg`);
-    raf = Math.abs(target.rx - cur.rx) + Math.abs(target.ry - cur.ry) > 0.02 ? requestAnimationFrame(step) : 0;
-  };
-  const kick = () => { if (!raf) raf = requestAnimationFrame(step); };
-  hero.addEventListener('pointermove', (e) => {
-    const r = slab.getBoundingClientRect();
-    slab.style.setProperty('--gx', `${((e.clientX - r.left) / r.width) * 100}%`);
-    slab.style.setProperty('--gy', `${((e.clientY - r.top) / r.height) * 100}%`);
-    if (flat) return;
-    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-    const dx = Math.max(-1, Math.min(1, (e.clientX - cx) / (innerWidth / 2)));
-    const dy = Math.max(-1, Math.min(1, (e.clientY - cy) / (innerHeight / 2)));
-    target = { rx: REST.rx - dy * 7, ry: REST.ry + dx * 10 }; kick();
-  });
-  hero.addEventListener('pointerleave', () => { target = { ...REST }; kick(); });
-  // when the pointer reaches the map, the slab turns to face you so pixel picking is exact
-  const wrap = $('.map-wrap', slab);
-  wrap.addEventListener('pointerenter', () => { flat = true; slab.classList.add('facing'); target = { rx: 0, ry: 0 }; kick(); });
-  wrap.addEventListener('pointerleave', () => { flat = false; slab.classList.remove('facing'); });
-}
-const env = $('.env');
-if (env && finePointer && !prefersReduced) {
-  let pending = 0;
-  addEventListener('pointermove', (e) => {
-    if (pending) return;
-    pending = requestAnimationFrame(() => {
-      pending = 0;
-      env.style.setProperty('--px', (e.clientX / innerWidth - 0.5).toFixed(3));
-      env.style.setProperty('--py', (e.clientY / innerHeight - 0.5).toFixed(3));
-    });
-  }, { passive: true });
-}
-
 // ---------- prefix lists (region/service pages) ----------
 $$('.prefix-block').forEach((block) => {
   const input = $('.filter', block), items = $$('.prefixes li', block);
@@ -201,6 +158,7 @@ if (form) {
     out.classList.remove('in'); void out.offsetWidth; out.classList.add('in');
     $('[data-copy-csv]', out)?.addEventListener('click', (e) => copy(e.currentTarget.dataset.csv, 'Copied results as CSV'));
     $('.copy-result', out)?.addEventListener('click', (e) => copy(e.currentTarget.dataset.result, 'Copied result'));
+    $('.show-map', out)?.addEventListener('click', () => $('#map')?.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth', block: 'center' }));
     if (push && innerWidth < 900) out.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth', block: 'start' });
   }
 
@@ -224,7 +182,7 @@ if (form) {
           <div><dt>Service codes</dt><dd>${[...new Set(hits.flatMap((h) => h.sv))].length ? svcTags(a, [...new Set(hits.flatMap((h) => h.sv))]) : ''}</dd></div>
           <div><dt>Network border group</dt><dd><code>${esc(a.nbgs[top.ni])}</code></dd></div>
           ${top.f ? `<div><dt>In the file since</dt><dd>${top.f.slice(0, 10) <= a.archiveStart.slice(0, 10) ? `at least ${month(a.archiveStart.slice(0, 10))}` : month(top.f)}</dd></div>` : ''}
-        </dl></div>`
+        </dl>${t.v === 4 ? '<button type="button" class="btn ghost show-map">Show on the map</button>' : ''}</div>`
       : `<div class="verdict partial"><p class="v-head"><span class="dot"></span><code>${esc(label)}</code> is partly AWS</p><p>${fmt(within.length)} AWS prefixes sit inside this range.</p></div>`;
     const all = hits.length > 1 ? `<h3 class="r-sub">Every published prefix containing it</h3><table class="mini"><tbody>${hits.map((h) => `<tr><td><code data-copy>${esc(h.cidr)}</code></td><td>${regionLink(a, h.ri)}</td><td>${svcTags(a, h.sv)}</td></tr>`).join('')}</tbody></table>` : '';
     const inner = within.length ? `<h3 class="r-sub">${fmt(within.length)} prefixes inside ${esc(label)}</h3><table class="mini"><tbody>${within.slice(0, 60).map((h) => `<tr><td><code data-copy>${esc(h.cidr)}</code></td><td>${regionLink(a, h.ri)}</td><td>${svcTags(a, h.sv)}</td></tr>`).join('')}</tbody></table>${within.length > 60 ? `<p class="muted">Showing 60 of ${fmt(within.length)}.</p>` : ''}` : '';
@@ -337,7 +295,7 @@ function initMap(root) {
     ctx.clearRect(0, 0, MAP_SIDE, MAP_SIDE);
     if (zoom === null) {
       if (focusGeo && cells) ctx.putImageData(dimLayer(focusGeo), 0, 0);
-      ctx.font = '500 15px ui-monospace, "SF Mono", Menlo, monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      ctx.font = '500 15px ui-monospace, "SF Mono", "Roboto Mono", Menlo, monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
       ctx.fillStyle = cssVar('--map-label');
       for (let o = 0; o < 256; o++) { const [x, y] = d2xy(16, o); ctx.fillText(String(o), x * 64 + 4, y * 64 + 3); }
     }
@@ -404,6 +362,7 @@ function initMap(root) {
     q.value = hits.length ? (hits[0].t.len >= 24 ? hits[0].cidr : formatIPv4(start + 1)) : `${formatIPv4(start)}/24`;
     q.dispatchEvent(new Event('input'));
     $('.search button')?.click();
+    setTimeout(() => $('#results')?.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth', block: 'center' }), 220);
   });
   addEventListener('keydown', (e) => { if (e.key === 'Escape' && zoom !== null) setZoom(null); });
   addEventListener('themechange', () => { for (const k in dimCache) delete dimCache[k]; if (zoom !== null && a) paintZoom(zoom); draw(); });

@@ -23,17 +23,17 @@ export function layout({ title, description, path, body, jsonld = [], updated, b
   ];
   const cur = path.replace(/^\//, '');
   return `<!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(description)}">
 ${noindex ? '<meta name="robots" content="noindex">' : `<link rel="canonical" href="${canonical}">`}
-<meta name="theme-color" content="#0e1726" media="(prefers-color-scheme: dark)">
-<meta name="theme-color" content="#e8eef5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
 <meta name="color-scheme" content="dark light">
-<script>(function(){try{var u=new URLSearchParams(location.search).get('theme');var t=(u==='light'||u==='dark')?u:localStorage.getItem('theme');if(!t)t=matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';document.documentElement.dataset.theme=t;}catch(e){}})();</script>
+<script>(function(){try{var u=new URLSearchParams(location.search).get('theme');var t=(u==='light'||u==='dark')?u:localStorage.getItem('theme');if(!t)t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.dataset.theme=t;}catch(e){}})();</script>
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="${SITE.name}">
 <meta property="og:title" content="${esc(title)}">
@@ -52,8 +52,7 @@ ${jsonld.map((j) => `<script type="application/ld+json">${JSON.stringify(j).repl
 </head>
 <body class="${bodyClass}" data-base="${SITE.base}">
 <a class="skip" href="#main">Skip to content</a>
-<div class="env" aria-hidden="true"></div>
-<header class="site-head glass">
+<header class="site-head">
   <a class="brand" href="${href()}">${LOGO}<span>AWS IP Atlas</span></a>
   <nav aria-label="Main">${nav.map(([p, l]) => `<a href="${href(p)}"${(p === '' ? cur === '' : cur.startsWith(p)) ? ' aria-current="page"' : ''}>${l}</a>`).join('')}
   <a class="gh" href="${SITE.repo}" rel="noopener" aria-label="Source on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0a8 8 0 0 0-2.53 15.59c.4.07.55-.17.55-.38v-1.33c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.05-.49.05-.49.8.06 1.23.83 1.23.83.72 1.22 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.28.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 8 0Z"/></svg></a>

@@ -9,7 +9,7 @@ AWS publishes every public IP range it uses as one 2.7 MB JSON file, [`ip-ranges
 ## What it does
 
 - **Look up any IP.** Paste one IPv4 or IPv6 address, a CIDR, or a whole list (log lines are fine). You get the most specific matching prefix, region, service codes, network border group and the month it first appeared. If the address used to be AWS, it tells you when.
-- **A 3D map of the whole IPv4 internet.** All 4.3 billion addresses laid out on a Hilbert curve, with AWS space coloured by region, on a glass slab that tilts toward your cursor. Click any /8 to zoom in to /24 detail; search an IP and the map flies to it.
+- **A 3D map of the whole IPv4 internet.** All 4.3 billion addresses laid out on a Hilbert curve, with AWS space coloured by region. Click any /8 to zoom in. Click any /8 to zoom in to /24 detail; search an IP and the map flies to it.
 - **11 years of history.** Growth since 2015 and the month each region code first appeared, rebuilt from archived versions of the file. Region codes often show up long before a region launches, and the site flags codes AWS hasn't named yet.
 - **Change log and Atom feed.** Every new `syncToken` is diffed prefix by prefix.
 - **Allowlist builder.** Pick a service, region and IP version, then get plain text, CSV, JSON, Terraform, nginx, Apache, iptables or an `aws ec2 create-managed-prefix-list` command. Optional merging collapses overlapping and adjacent ranges into the smallest CIDR list.
