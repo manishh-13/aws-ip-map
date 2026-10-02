@@ -69,7 +69,7 @@ function files(dir, list, meta) {
 
 // ---------- shared fragments ----------
 const svcChips = (services, linkable = true) => services.filter((s) => s !== 'AMAZON' || services.length === 1)
-  .map((s) => linkable ? `<a class="tag" href="${href(`services/${slug(s)}/`)}">${esc(s)}</a>` : `<span class="tag">${esc(s)}</span>`).join('') ;
+  .map((s) => linkable ? `<a class="tag" href="${href(`services/${slug(s)}/`)}" title="See every ${esc(s)} range">${esc(s)}</a>` : `<span class="tag">${esc(s)}</span>`).join('') ;
 
 function prefixList(list, { showServices = true, showRegion = false } = {}) {
   const items = list.map((r) => {
@@ -195,45 +195,40 @@ async function home(cellsInfo) {
 
   const body = `
 <section class="hero">
-  <p class="status"><span class="lamp on" aria-hidden="true"></span>Live, synced with AWS <time datetime="${UPDATED}" data-ago>${fmtDate(UPDATED)}</time></p>
-  <h1>AWS IP address ranges, made easy to look up.</h1>
-  <p class="lede">AWS publishes all ${fmt(SUM.v4p + SUM.v6p)} of its public IP ranges as one 2.7&nbsp;MB JSON file. Search them here instead: paste an IP, a CIDR or a whole list and get the region, service and network border group instantly.</p>
-  <form class="search" role="search" action="${href()}" method="get" autocomplete="off">
-    <label for="q" class="sr">IP address, CIDR, region or service</label>
-    <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="m16 16 4.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-    <textarea id="q" name="q" rows="1" spellcheck="false" placeholder="Paste an IP, CIDR, or a list..."></textarea>
-    <button type="submit" class="btn primary">Look up</button>
-  </form>
-  <p class="try">Try <button type="button" data-q="18.180.88.10">18.180.88.10</button><button type="button" data-q="2600:1f18::1">2600:1f18::1</button><button type="button" data-q="52.94.0.0/16">52.94.0.0/16</button><button type="button" data-q="ap-south-1">ap-south-1</button><button type="button" data-q="3.5.140.2&#10;13.32.0.1&#10;8.8.8.8">a list of IPs</button></p>
-  <div id="results" class="results" aria-live="polite"></div>
-</section>
-
-<section class="band dark map-band" id="map-section">
-  <div class="band-inner">
-    <div class="band-head">
-      <h2 class="section-title">The whole IPv4 internet, with AWS lit up.</h2>
-      <p>All 4.3 billion addresses on one Hilbert curve, where neighbouring addresses stay neighbours. Each tile is a /8, each pixel a /20. AWS holds ${fmtAddrs(SUM.v4a)} of them, ${share}% of the space. Click a tile to zoom in; search an IP and the map goes straight to it.</p>
-    </div>
-    <figure class="atlas" id="map">
-      <div class="map-wrap">
-        <img class="map-img" src="${href('map.png')}?v=${SUM.sync}" width="1024" height="1024" alt="Hilbert-curve map of the entire IPv4 internet with AWS's published ranges coloured by region">
-        <canvas class="map-zoom" width="1024" height="1024" aria-hidden="true"></canvas>
-        <canvas class="map-overlay" width="1024" height="1024" aria-hidden="true"></canvas>
-        <button type="button" class="map-back" hidden>Show whole internet</button>
-        <div class="loupe" aria-hidden="true"><canvas width="176" height="176"></canvas></div>
-        <div class="map-tip" role="status" hidden></div>
-      </div>
-      <figcaption>
-        <p class="map-where">The whole IPv4 internet</p>
-        <ul class="legend">${geoTotals.filter((g) => g.a > 0).map((g) => `<li><button type="button" data-geo="${g.id}" style="--c:${g.mid ? rgb(g.mid) : 'gray'}"><i></i>${esc(g.label)}<span>${fmtAddrs(g.a)}</span></button></li>`).join('')}</ul>
-      </figcaption>
-    </figure>
+  <div class="hero-copy">
+    <p class="status"><span class="lamp on" aria-hidden="true"></span>Live, synced with AWS <time datetime="${UPDATED}" data-ago>${fmtDate(UPDATED)}</time></p>
+    <h1>AWS IP address ranges, made easy to look up.</h1>
+    <p class="lede">AWS publishes all ${fmt(SUM.v4p + SUM.v6p)} of its public IP ranges as one 2.7&nbsp;MB JSON file. Search them here instead: paste an IP, a CIDR or a whole list and get the region, service and network border group instantly.</p>
+    <form class="search" role="search" action="${href()}" method="get" autocomplete="off">
+      <label for="q" class="sr">IP address, CIDR, region or service</label>
+      <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="m16 16 4.5 4.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <textarea id="q" name="q" rows="1" spellcheck="false" placeholder="Paste an IP, CIDR, or a list..."></textarea>
+      <button type="submit" class="btn primary">Look up</button>
+    </form>
+    <p class="try">Try <button type="button" data-q="18.180.88.10">18.180.88.10</button><button type="button" data-q="2600:1f18::1">2600:1f18::1</button><button type="button" data-q="52.94.0.0/16">52.94.0.0/16</button><button type="button" data-q="ap-south-1">ap-south-1</button><button type="button" data-q="3.5.140.2&#10;13.32.0.1&#10;8.8.8.8">a list of IPs</button></p>
+    <div id="results" class="results" aria-live="polite"></div>
   </div>
+  <figure class="atlas" id="map">
+    <div class="map-wrap">
+      <img class="map-img" src="${href('map.png')}?v=${SUM.sync}" width="1024" height="1024" alt="Hilbert-curve map of the entire IPv4 internet with AWS's published ranges coloured by region">
+      <canvas class="map-zoom" width="1024" height="1024" aria-hidden="true"></canvas>
+      <canvas class="map-overlay" width="1024" height="1024" aria-hidden="true"></canvas>
+      <button type="button" class="map-back" hidden>Show whole internet</button>
+      <div class="loupe" aria-hidden="true"><canvas width="176" height="176"></canvas></div>
+      <div class="map-tip" role="status" hidden></div>
+    </div>
+    <figcaption>
+      <div class="map-cap-row"><p class="map-where">The whole IPv4 internet</p><p class="map-share"><b>${fmtAddrs(SUM.v4a)}</b> AWS addresses, ${share}% of IPv4</p></div>
+      <p class="map-note">All 4.3 billion addresses on a Hilbert curve. Each tile is a /8, each pixel a /20. Click a tile to zoom in; search an IP and the map goes straight to it.</p>
+      <ul class="legend">${geoTotals.filter((g) => g.a > 0).map((g) => `<li><button type="button" data-geo="${g.id}" style="--c:${g.mid ? rgb(g.mid) : 'gray'}"><i></i>${esc(g.label)}<span>${fmtAddrs(g.a)}</span></button></li>`).join('')}</ul>
+    </figcaption>
+  </figure>
 </section>
 
 <section class="band gray builder" id="allowlist">
   <div class="band-inner">
-    <div class="section-head"><h2 class="section-title">Build an allowlist in seconds.</h2><p>Pick a service and region, choose a format, copy. Turn on merging to collapse overlapping and adjacent prefixes into the smallest CIDR list, which helps when security groups or prefix lists cap your entries.</p></div>
+    <div class="section-head"><h2 class="section-title">Allowlist builder</h2><p>Pick a service and region, choose a format, copy. Turn on merging to collapse overlapping and adjacent prefixes into the smallest CIDR list, which helps when security groups or prefix lists cap your entries.</p></div>
+    <p class="note"><b>These ranges change often.</b> A list you paste once will go out of date. For anything long-lived, fetch it automatically from the <a href="${href('api/')}">plain-text API</a> or react to AWS's own change notifications (the <code>AmazonIpSpaceChanged</code> SNS topic).</p>
     <form class="builder-form">
       <label>Service<select name="service">${SERVICES.map((s) => `<option value="${s}"${s === 'CLOUDFRONT' ? ' selected' : ''}>${esc(s)}: ${esc(serviceLabel(s))}</option>`).join('')}</select></label>
       <label>Region<select name="region"><option value="">All regions</option>${REGIONS.map((r) => `<option value="${r}">${esc(r)}: ${esc(regionLabel(r).name)}</option>`).join('')}</select></label>

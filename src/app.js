@@ -129,8 +129,8 @@ function formerHit(a, t) {
   return a.formerParsed.filter((x) => x.t.v === t.v && x.t.start <= t.start && x.t.end >= t.end).sort((x, y) => y.t.len - x.t.len)[0];
 }
 
-const regionLink = (a, ri) => { const [code, name, announced] = a.regions[ri]; return `<a href="${BASE}regions/${code}/">${esc(code)}</a> <span class="muted">${announced ? esc(name) : 'name not yet published'}</span>`; };
-const svcTags = (a, sv) => sv.map((i) => a.services[i][0]).filter((s, _, all) => s !== 'AMAZON' || all.length === 1).map((s) => `<a class="tag" href="${BASE}services/${slug(s)}/">${esc(s)}</a>`).join('');
+const regionLink = (a, ri) => { const [code, name, announced] = a.regions[ri]; return `<a class="rlink" href="${BASE}regions/${code}/" title="See every range in ${esc(code)}">${esc(code)}</a> <span class="muted">${announced ? esc(name) : 'name not yet published'}</span>`; };
+const svcTags = (a, sv) => sv.map((i) => a.services[i][0]).filter((s, _, all) => s !== 'AMAZON' || all.length === 1).map((s) => `<a class="tag" href="${BASE}services/${slug(s)}/" title="See every ${esc(s)} range">${esc(s)}</a>`).join('');
 
 // ---------- search ----------
 const form = $('.search');
@@ -158,7 +158,7 @@ if (form) {
     out.classList.remove('in'); void out.offsetWidth; out.classList.add('in');
     $('[data-copy-csv]', out)?.addEventListener('click', (e) => copy(e.currentTarget.dataset.csv, 'Copied results as CSV'));
     $('.copy-result', out)?.addEventListener('click', (e) => copy(e.currentTarget.dataset.result, 'Copied result'));
-    $('.show-map', out)?.addEventListener('click', () => $('#map')?.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth', block: 'center' }));
+    $('.show-map', out)?.addEventListener('click', () => $('#map')?.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth', block: 'nearest' }));
     if (push && innerWidth < 900) out.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth', block: 'start' });
   }
 
@@ -362,7 +362,7 @@ function initMap(root) {
     q.value = hits.length ? (hits[0].t.len >= 24 ? hits[0].cidr : formatIPv4(start + 1)) : `${formatIPv4(start)}/24`;
     q.dispatchEvent(new Event('input'));
     $('.search button')?.click();
-    setTimeout(() => $('#results')?.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth', block: 'center' }), 220);
+    setTimeout(() => $('#results')?.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth', block: 'nearest' }), 220);
   });
   addEventListener('keydown', (e) => { if (e.key === 'Escape' && zoom !== null) setZoom(null); });
   addEventListener('themechange', () => { for (const k in dimCache) delete dimCache[k]; if (zoom !== null && a) paintZoom(zoom); draw(); });
