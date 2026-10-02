@@ -42,6 +42,28 @@ function download(name, text) {
   a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
+// ---------- theme + glass ----------
+const cssVar = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+$('.theme-toggle')?.addEventListener('click', () => {
+  const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light';
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem('theme', next); } catch {}
+  dispatchEvent(new Event('themechange'));
+});
+// specular highlight that follows the pointer across glass surfaces
+let glassRaf = 0;
+document.addEventListener('pointermove', (e) => {
+  if (glassRaf || prefersReduced) return;
+  glassRaf = requestAnimationFrame(() => {
+    glassRaf = 0;
+    const g = e.target.closest?.('.glass');
+    if (!g) return;
+    const r = g.getBoundingClientRect();
+    g.style.setProperty('--mx', `${e.clientX - r.left}px`);
+    g.style.setProperty('--my', `${e.clientY - r.top}px`);
+  });
+}, { passive: true });
+
 // ---------- prefix lists (region/service pages) ----------
 $$('.prefix-block').forEach((block) => {
   const input = $('.filter', block), items = $$('.prefixes li', block);
@@ -148,6 +170,7 @@ if (form) {
     else out.innerHTML = textSearch(a, text);
     out.classList.remove('in'); void out.offsetWidth; out.classList.add('in');
     $('[data-copy-csv]', out)?.addEventListener('click', (e) => copy(e.currentTarget.dataset.csv, 'Copied results as CSV'));
+    $('.copy-result', out)?.addEventListener('click', (e) => copy(e.currentTarget.dataset.result, 'Copied result'));
     if (push && innerWidth < 900) out.scrollIntoView({ behavior: prefersReduced ? 'auto' : 'smooth', block: 'start' });
   }
 
@@ -158,12 +181,13 @@ if (form) {
     if (t.v === 4) mapApi?.mark(Number(t.start));
     if (!hits.length && !within.length) {
       const was = formerHit(a, t);
-      return `<div class="verdict no"><p class="v-head"><span class="dot"></span><code>${esc(label)}</code> is not in AWS's published ranges</p>
+      return `<div class="verdict no"><p class="v-head"><span class="dot"></span><code>${esc(label)}</code> is not in AWS's published ranges</p><button type="button" class="btn ghost copy-result" data-result="${esc(`${label}: not in AWS ip-ranges.json (syncToken ${a.sync})`)}">Copy result</button>
       ${was ? `<p>It used to be: <code>${esc(was.c)}</code> was listed for <a href="${BASE}regions/${esc(was.r)}/">${esc(was.r)}</a> (${esc(was.s.join(', '))}) from ${month(was.f)} until ${month(was.l)}.</p>` : `<p class="muted">Not listed in ip-ranges.json today${a.archiveStart ? `, and not in any archived version since ${month(a.archiveStart.slice(0, 10))}` : ''}. AWS customers can also bring their own IP ranges, which AWS doesn't publish.</p>`}</div>`;
     }
     const top = hits[0];
     const headline = top
       ? `<div class="verdict yes"><p class="v-head"><span class="dot"></span><code>${esc(label)}</code> is AWS</p>
+        <button type="button" class="btn ghost copy-result" data-result="${esc(`${label}: AWS, ${[...new Set(hits.flatMap((h) => h.sv))].map((i) => a.services[i][0]).filter((x, _, l) => x !== 'AMAZON' || l.length === 1).join(' + ')}, ${a.regions[top.ri][0]} (${top.cidr}, border group ${a.nbgs[top.ni]})`)}">Copy result</button>
         <dl class="hit">
           <div><dt>Most specific prefix</dt><dd><code data-copy>${esc(top.cidr)}</code> <span class="muted">${fmtAddrs(addressCount(top.t.v, top.t.len))} addresses</span></dd></div>
           <div><dt>Region</dt><dd>${regionLink(a, top.ri)}</dd></div>
@@ -226,10 +250,11 @@ function initMap(root) {
     if (dimCache[geo]) return dimCache[geo];
     const { xs, ys } = hilbert();
     const im = ctx.createImageData(MAP_SIDE, MAP_SIDE), px = im.data;
+    const bg = cssVar('--map-bg').split(/[ ,]+/).map(Number);
     for (let d = 0; d < cells.length; d++) {
       const c = cells[d]; const i = (ys[d] * MAP_SIDE + xs[d]) * 4;
-      if (c && a.regions[(c - 1) >> 1][3] === geo) continue;
-      px[i] = 246; px[i + 1] = 241; px[i + 2] = 231; px[i + 3] = c ? 225 : 120;
+      if (!c || a.regions[(c - 1) >> 1][3] === geo) continue;
+      px[i] = bg[0]; px[i + 1] = bg[1]; px[i + 2] = bg[2]; px[i + 3] = 215;
     }
     return (dimCache[geo] = im);
   }
@@ -238,9 +263,10 @@ function initMap(root) {
   const Z = 256, ZP = MAP_SIDE / Z;
   function paintZoom(octet) {
     const base = octet * 2 ** 24, end = base + 2 ** 24 - 1;
-    zctx.fillStyle = '#f6f1e7'; zctx.fillRect(0, 0, MAP_SIDE, MAP_SIDE);
+    zctx.clearRect(0, 0, MAP_SIDE, MAP_SIDE);
     // faint /16 tiles
-    for (let o = 0; o < 256; o++) { const [x, y] = d2xy(16, o); if ((o & 1) === 0) { zctx.fillStyle = '#efe8da'; zctx.fillRect(x * 64, y * 64, 64, 64); } }
+    zctx.fillStyle = 'rgba(128, 136, 160, 0.09)';
+    for (let o = 0; o < 256; o++) { const [x, y] = d2xy(16, o); if ((o & 1) === 0) zctx.fillRect(x * 64, y * 64, 64, 64); }
     const rows = a.v4.filter((r) => r.s4 <= end && r.e4 >= base).sort((p, q) => p.t.len - q.t.len);
     for (const r of rows) {
       const s = Math.max(r.s4, base), e = Math.min(r.e4, end);
@@ -249,10 +275,10 @@ function initMap(root) {
       const geo = a.regions[r.ri][3];
       const dim = focusGeo && geo !== focusGeo;
       const c = r.t.len <= 24 ? full : part;
-      zctx.fillStyle = dim ? 'rgba(200,190,175,.35)' : `rgb(${c.join(',')})`;
+      zctx.fillStyle = dim ? 'rgba(128, 136, 160, 0.22)' : `rgb(${c.join(',')})`;
       for (let d = d0; d <= d1; d++) { const [x, y] = d2xy(Z, d); zctx.fillRect(x * ZP, y * ZP, ZP, ZP); }
     }
-    zctx.font = '500 14px "JetBrains Mono", monospace'; zctx.textBaseline = 'top'; zctx.fillStyle = 'rgba(40,46,70,.38)';
+    zctx.font = '500 14px "Geist Mono", ui-monospace, monospace'; zctx.textBaseline = 'top'; zctx.fillStyle = cssVar('--map-label');
     for (let o = 0; o < 256; o++) { const [x, y] = d2xy(16, o); zctx.fillText(`${octet}.${o}`, x * 64 + 3, y * 64 + 3); }
   }
   function setZoom(octet, animate = true) {
@@ -281,13 +307,13 @@ function initMap(root) {
     ctx.clearRect(0, 0, MAP_SIDE, MAP_SIDE);
     if (zoom === null) {
       if (focusGeo && cells) ctx.putImageData(dimLayer(focusGeo), 0, 0);
-      ctx.font = '500 15px "JetBrains Mono", monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-      ctx.fillStyle = 'rgba(40, 46, 70, 0.32)';
+      ctx.font = '500 15px "Geist Mono", ui-monospace, monospace'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      ctx.fillStyle = cssVar('--map-label');
       for (let o = 0; o < 256; o++) { const [x, y] = d2xy(16, o); ctx.fillText(String(o), x * 64 + 4, y * 64 + 3); }
     }
     if (marker !== null) {
       const [x, y] = pixelOf(marker);
-      ctx.strokeStyle = 'rgba(200, 60, 30, 0.95)'; ctx.lineWidth = 3;
+      ctx.strokeStyle = cssVar('--accent'); ctx.lineWidth = 3;
       ctx.beginPath(); ctx.arc(x, y, 12 + 48 * (1 - pulse), 0, Math.PI * 2); ctx.stroke();
       ctx.lineWidth = 2; ctx.beginPath();
       ctx.moveTo(x - 26, y); ctx.lineTo(x - 8, y); ctx.moveTo(x + 8, y); ctx.lineTo(x + 26, y);
@@ -322,10 +348,10 @@ function initMap(root) {
     const p = at(e); if (!p) return;
     const { start, hits, label } = blockAt(p);
     lctx.imageSmoothingEnabled = false;
-    lctx.fillStyle = '#f6f1e7'; lctx.fillRect(0, 0, 176, 176);
+    lctx.clearRect(0, 0, 176, 176);
     const src = zoom === null ? img : zoomC, span = zoom === null ? 22 : 44;
     lctx.drawImage(src, p.x - span / 2, p.y - span / 2, span, span, 0, 0, 176, 176);
-    lctx.strokeStyle = 'rgba(30,34,52,.8)'; lctx.lineWidth = 1.5; lctx.strokeRect(84, 84, 8, 8);
+    lctx.strokeStyle = cssVar('--accent'); lctx.lineWidth = 1.5; lctx.strokeRect(84, 84, 8, 8);
     const lx = p.px + 24 + 176 > p.r.width ? p.px - 24 - 176 : p.px + 24;
     const ly = Math.max(0, Math.min(p.py - 88, p.r.height - 176));
     loupe.style.transform = `translate(${lx}px, ${ly}px)`; loupe.classList.add('on');
@@ -350,6 +376,7 @@ function initMap(root) {
     $('.search button')?.click();
   });
   addEventListener('keydown', (e) => { if (e.key === 'Escape' && zoom !== null) setZoom(null); });
+  addEventListener('themechange', () => { for (const k in dimCache) delete dimCache[k]; if (zoom !== null && a) paintZoom(zoom); draw(); });
   $$('.legend button', root).forEach((b) => {
     const on = () => { if (!cells) return; focusGeo = b.dataset.geo; if (zoom !== null) paintZoom(zoom); draw(); $$('.area').forEach((ar) => ar.classList.toggle('faded', ar.dataset.geo !== focusGeo)); b.classList.add('on'); };
     const off = () => { focusGeo = null; if (zoom !== null) paintZoom(zoom); draw(); $$('.area').forEach((ar) => ar.classList.remove('faded')); b.classList.remove('on'); };
