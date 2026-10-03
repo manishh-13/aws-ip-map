@@ -1,5 +1,5 @@
 // The whole history in one structure. Pure ESM, used by the import, the scheduled updater, the build and the browser.
-//   versions: [[syncToken, isoTime, source], ...]   oldest first; source: 'w' archive (monthly), 'j' git history, 'l' live
+//   versions: [[syncToken, isoTime, source], ...]   oldest first; source: 's' seligman, 'j' joetek, 'w' Internet Archive, 'l' live
 //   entries:  { "cidr|region|nbg|service": [start, end, start, end, ...] }   half-open version-index spans, end -1 = still listed
 import { entries as docEntries, createDateToISO } from './stats.js';
 
@@ -50,6 +50,25 @@ export function changeEvents(tl) {
     }
   }
   return ev;
+}
+
+// Sources that saw every version as it was published (polling or SNS), so a change at v happened between v-1 and v within hours:
+// joetek's git history ('j', from Jul 2017), this site ('l'), and seligman's tracker ('s') from the day it went live.
+// Everything else (archive captures, seligman's backfill of earlier years) is occasional samples.
+export const SELIGMAN_LIVE = '2020-07-14';
+const tracked = ([, iso, src]) => src === 'j' || src === 'l' || (src === 's' && iso >= SELIGMAN_LIVE);
+
+/** Version indices whose changes can't be dated to the day: the version or the one before it is a sample, or the two are
+ *  more than maxGapDays apart (a tracker outage), and they fall on different days. A change at such a v happened
+ *  somewhere between versions v-1 and v. */
+export function looseVersions(versions, maxGapDays = 21) {
+  const out = [];
+  for (let v = 1; v < versions.length; v++) {
+    const a = versions[v - 1], b = versions[v];
+    if (a[1].slice(0, 10) === b[1].slice(0, 10)) continue; // same day: exact to the day, which is all the site shows
+    if (!tracked(a) || !tracked(b) || Date.parse(b[1]) - Date.parse(a[1]) > maxGapDays * 864e5) out.push(v);
+  }
+  return out;
 }
 
 /** Latest version index whose time is on or before the given ISO date/time. */

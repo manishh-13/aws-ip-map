@@ -1,5 +1,5 @@
 // Step 1 of `npm run history`: download the last Internet Archive capture of each month into .cache/wayback.
-// scripts/import-history.mjs then builds data/timeline.json and data/history.json from it plus the joetek git history.
+// scripts/import-history.mjs then merges these with the joetek and seligman records into data/timeline.json and data/history.json.
 import fs from 'node:fs/promises';
 import path from 'node:path';
 

@@ -44,7 +44,7 @@ Requires Node 20 or newer.
 
 ```sh
 npm run update      # fetch the live ip-ranges.json into data/
-npm run history     # optional: rebuild the full history (Internet Archive + joetek git history, a few minutes)
+npm run history     # optional: rebuild the full history from joetek, seligman and the Internet Archive (a few minutes)
 npm run dev         # build and serve at http://localhost:4173/aws-rangefinder/
 npm test
 ```
@@ -59,7 +59,7 @@ npm test
 
 - Unofficial project, not affiliated with or endorsed by Amazon Web Services. The source of truth is always AWS's own [ip-ranges.json](https://ip-ranges.amazonaws.com/ip-ranges.json) and its [documentation](https://docs.aws.amazon.com/vpc/latest/userguide/aws-ip-ranges.html).
 - For production allowlists that must react within minutes, subscribe to AWS's SNS topic `arn:aws:sns:us-east-1:806199016981:AmazonIpSpaceChanged` ([docs](https://docs.aws.amazon.com/vpc/latest/userguide/subscribe-notifications.html)).
-- History: November 2015 to July 2017 comes from the last [Internet Archive](https://web.archive.org/) capture of each month, so changes in that period are accurate to the month. From July 2017 every version comes from [joetek/aws-ip-ranges-json](https://github.com/joetek/aws-ip-ranges-json), which has tracked the file in git since 2017. Thank you, joetek. The whole history is one file, `data/timeline.json`: every entry ever published, with the versions during which it was listed.
+- History: AWS doesn't publish old versions of the file ([its docs](https://docs.aws.amazon.com/vpc/latest/userguide/aws-ip-ranges.html) suggest saving successive versions yourself), so the history here merges two public trackers, matched on AWS's own `createDate` and `syncToken`. From July 2017, [joetek/aws-ip-ranges-json](https://github.com/joetek/aws-ip-ranges-json) has tracked the file in git, and [seligman/aws-ip-ranges](https://github.com/seligman/aws-ip-ranges) (an SNS-triggered tracker running since 2020) adds the versions joetek's polling missed. November 2015 to July 2017 comes from seligman's archive of occasional captures, so changes in that period are shown as happening between two dates; one [Internet Archive](https://web.archive.org/) capture fills part of a gap in late 2019. Thank you, joetek and seligman. The whole history is one file, `data/timeline.json`: every entry ever published, with the versions during which it was listed.
 
 ## License
 

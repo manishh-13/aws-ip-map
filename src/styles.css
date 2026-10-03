@@ -366,6 +366,8 @@ h3 { font-weight: 600; letter-spacing: -0.015em; }
 .g-bar { position: absolute; top: 0; bottom: 0; border-radius: var(--r-pill); background: var(--mute); }
 .g-bar.open { background: var(--cta); }
 .g-dates { font-size: .86rem; color: var(--ink-2); text-align: right; }
+.approx { text-decoration: underline dotted; text-underline-offset: 3px; cursor: help; }
+.g-note { font-size: .84rem; margin-top: .6rem; }
 .years { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s5); }
 .years a { font-size: .92rem; padding: .45rem .85rem; border-radius: var(--r-pill); border: 1px solid var(--rule); color: var(--ink); }
 .years a:hover { border-color: var(--ink-2); }

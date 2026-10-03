@@ -9,7 +9,8 @@ const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '
 const fmt = (n) => Number(n).toLocaleString('en-US');
 const fmtAddrs = (n) => { n = Number(n); return n >= 1e9 ? `${(n / 1e9).toFixed(2)} billion` : n >= 1e6 ? `${(n / 1e6).toFixed(1)} million` : fmt(n); };
 const dayFmt = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
-const sinceTxt = (f) => (!f ? '' : f[1] === 2 ? `at least ${month(f[0])}` : f[1] === 1 ? month(f[0]) : dayFmt(f[0]));
+// f = [iso, kind, prev]: kind 0 exact, 1 somewhere between prev and iso (gap in the record), 2 in the oldest version on record
+const sinceTxt = (f) => (!f ? '' : f[1] === 2 ? `by ${month(f[0])}, the oldest version on record` : f[1] === 1 ? (f[2] ? `between ${dayFmt(f[2])} and ${dayFmt(f[0])}` : month(f[0])) : dayFmt(f[0]));
 const month = (d) => (d ? new Date(d + (d.length === 10 ? 'T00:00:00Z' : '')).toLocaleDateString('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' }) : '');
 const slug = (s) => s.toLowerCase().replace(/_/g, '-');
 const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -172,7 +173,7 @@ if (form) {
     if (!hits.length && !within.length) {
       const was = formerHit(a, t);
       return `<div class="verdict no"><p class="v-head"><span class="dot"></span><code>${esc(label)}</code> is not in AWS's published ranges</p><button type="button" class="btn ghost copy-result" data-result="${esc(`${label}: not in AWS ip-ranges.json (syncToken ${a.sync})`)}">Copy result</button>
-      ${was ? `<p>It used to be: <code>${esc(was.c)}</code> was listed for <a href="${BASE}regions/${esc(was.r)}/">${esc(was.r)}</a> (${esc(was.s.join(', '))}) from ${dayFmt(was.f)} until ${dayFmt(was.l)}.</p>` : `<p class="muted">Not listed in ip-ranges.json today${a.archiveStart ? `, and not in any version since ${dayFmt(a.archiveStart)}` : ''}. AWS customers can also bring their own IP ranges, which AWS doesn't publish.</p>`}
+      ${was ? `<p>It used to be: <code>${esc(was.c)}</code> was listed for ${a.regions.some((x) => x[0] === was.r) ? `<a href="${BASE}regions/${esc(was.r)}/">${esc(was.r)}</a>` : esc(was.r)} (${esc(was.s.join(', '))}) from ${dayFmt(was.f)} until ${dayFmt(was.l)}.</p>` : `<p class="muted">Not listed in ip-ranges.json today${a.archiveStart ? `, and not in any version on record since ${dayFmt(a.archiveStart)}` : ''}. AWS customers can also bring their own IP ranges, which AWS doesn't publish.</p>`}
       <p class="dl-row"><a class="btn ghost" href="${BASE}history/?ip=${encodeURIComponent(label)}#ip">See its full history</a></p></div>`;
     }
     const top = hits[0];
@@ -184,7 +185,7 @@ if (form) {
           <div><dt>Region</dt><dd>${regionLink(a, top.ri)}</dd></div>
           <div><dt>Service codes</dt><dd>${[...new Set(hits.flatMap((h) => h.sv))].length ? svcTags(a, [...new Set(hits.flatMap((h) => h.sv))]) : ''}</dd></div>
           <div><dt>Network border group</dt><dd><code>${esc(a.nbgs[top.ni])}</code></dd></div>
-          ${top.f ? `<div><dt>In the file since</dt><dd>${sinceTxt(top.f)}</dd></div>` : ''}
+          ${top.f ? `<div><dt>First listed</dt><dd>${sinceTxt(top.f)}</dd></div>` : ''}
         </dl><p class="dl-row">${t.v === 4 ? '<button type="button" class="btn ghost show-map">Show on the map</button>' : ''}<a class="btn ghost" href="${BASE}history/?ip=${encodeURIComponent(label)}#ip">See its full history</a></p></div>`
       : `<div class="verdict partial"><p class="v-head"><span class="dot"></span><code>${esc(label)}</code> is partly AWS</p><p>${fmt(within.length)} AWS prefixes sit inside this range.</p></div>`;
     const all = hits.length > 1 ? `<h3 class="r-sub">Every published prefix containing it</h3><table class="mini"><tbody>${hits.map((h) => `<tr><td><code data-copy>${esc(h.cidr)}</code></td><td>${regionLink(a, h.ri)}</td><td>${svcTags(a, h.sv)}</td></tr>`).join('')}</tbody></table>` : '';

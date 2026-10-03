@@ -1,5 +1,6 @@
 // History page: an IP's full history, the ranges on any date, and compare two dates. Loaded only on /history/.
 import { parseTarget } from './lib/ip.js';
+import { SELIGMAN_LIVE } from './lib/timeline.js';
 
 const BASE = document.body.dataset.base || '/';
 const $ = (s, el = document) => el.querySelector(s);
@@ -12,6 +13,9 @@ let dataP;
 function load() {
   dataP ??= fetch(`${BASE}data/timeline.min.json`).then((r) => r.json()).then((d) => {
     d.E = d.e.map((row) => ({ cidr: row[0], r: d.regions[row[1]], n: d.nbgs[row[2]], s: d.services[row[3]], spans: row.slice(4) }));
+    d.L = new Set(d.loose || []);
+    // only region and service codes still in the file have pages; retired ones (us-iso-east-1, IOT_CORE) are plain text
+    d.RP = new Set(d.regionPages || d.regions); d.SP = new Set(d.servicePages || d.services);
     return d;
   });
   return dataP;
@@ -19,7 +23,13 @@ function load() {
 const present = (spans, v) => { for (let i = 0; i < spans.length; i += 2) if (spans[i] <= v && (spans[i + 1] === -1 || v < spans[i + 1])) return true; return false; };
 function versionAt(d, iso) { let lo = 0, hi = d.versions.length - 1, ans = 0; while (lo <= hi) { const m = (lo + hi) >> 1; if (d.versions[m][1] <= iso) { ans = m; lo = m + 1; } else hi = m - 1; } return ans; }
 const endOfDay = (dayStr) => `${dayStr}T23:59:59Z`;
-const srcName = { w: 'monthly archive capture', j: 'recorded version', l: 'live fetch' };
+// seligman's archive before its tracker went live is a backfill of occasional captures
+const srcName = (src, iso) => (src === 'w' || (src === 's' && iso < SELIGMAN_LIVE) ? 'archive capture' : src === 'l' ? 'live fetch' : 'recorded version');
+// a change at a loose version happened somewhere between the previous version and it (a gap in the record)
+const isLoose = (d, v) => v > 0 && d.L.has(v);
+const approx = (d, v) => `<span class="approx" title="Gap in the record: somewhere between ${day(d.versions[v - 1][1])} and ${day(d.versions[v][1])}">${day(d.versions[v][1])}</span>`;
+// iso falls inside a gap: after version v (the one in force) and before the next version, which is loose
+const inGap = (d, v, iso) => iso > d.versions[v][1] && v + 1 < d.versions.length && isLoose(d, v + 1);
 function download(name, text, type = 'text/plain') {
   const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([text], { type })), download: name });
   a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
@@ -35,7 +45,7 @@ async function ipHistory(q) {
   const d = await load();
   d.E.forEach((e) => { e.t ??= parseTarget(e.cidr); });
   const hits = d.E.filter((e) => e.t && e.t.v === t.v && e.t.start <= t.start && e.t.end >= t.end);
-  if (!hits.length) { out.innerHTML = `<div class="verdict no"><p class="v-head"><span class="dot"></span><code>${esc(q)}</code> has never been in AWS's published ranges</p><p>Not listed in any of the ${fmt(d.versions.length)} versions since ${day(d.versions[0][1])}.</p></div>`; return; }
+  if (!hits.length) { out.innerHTML = `<div class="verdict no"><p class="v-head"><span class="dot"></span><code>${esc(q)}</code> has never appeared in any version on record</p><p>Not listed in any of the ${fmt(d.versions.length)} versions since ${day(d.versions[0][1])}.</p></div>`; return; }
   // group spans by (cidr, region, nbg, span) and merge services
   const rows = new Map();
   for (const e of hits) for (let i = 0; i < e.spans.length; i += 2) {
@@ -48,15 +58,17 @@ async function ipHistory(q) {
   const pos = (v) => ((Date.parse(v === -1 ? new Date().toISOString() : d.versions[v][1]) - t0) / (t1 - t0)) * 100;
   const nowListed = list.some((r) => r.b === -1);
   const firstV = Math.min(...list.map((r) => r.a));
+  const anyOldest = list.some((r) => r.a === 0), anyGap = list.some((r) => isLoose(d, r.a) || (r.b !== -1 && isLoose(d, r.b)));
+  const when = (v) => (v === 0 ? `<span class="approx" title="In the oldest version on record, so it may have been listed earlier">${day(d.versions[0][1])}</span>` : isLoose(d, v) ? approx(d, v) : day(d.versions[v][1]));
   const years = []; for (let y = new Date(t0).getUTCFullYear() + 1; y <= new Date(t1).getUTCFullYear(); y++) years.push(y);
   out.innerHTML = `<div class="verdict ${nowListed ? 'yes' : 'no'}"><p class="v-head"><span class="dot"></span><code>${esc(q)}</code> ${nowListed ? 'is AWS today' : 'is not AWS today'}</p>
-  <p>First listed ${firstV === 0 ? `before ${day(d.versions[0][1])}` : `on ${day(d.versions[firstV][1])}`}. ${list.length} listing${list.length === 1 ? '' : 's'} across ${new Set(list.map((r) => r.cidr)).size} prefix${new Set(list.map((r) => r.cidr)).size === 1 ? '' : 'es'}.</p></div>
+  <p>First listed ${firstV === 0 ? `by ${day(d.versions[0][1])}, the oldest version on record` : isLoose(d, firstV) ? `between ${day(d.versions[firstV - 1][1])} and ${day(d.versions[firstV][1])}` : `on ${day(d.versions[firstV][1])}`}. ${list.length} listing${list.length === 1 ? '' : 's'} across ${new Set(list.map((r) => r.cidr)).size} prefix${new Set(list.map((r) => r.cidr)).size === 1 ? '' : 'es'}.</p></div>
   <div class="gantt" role="table" aria-label="Listing timeline">
     <div class="g-axis" aria-hidden="true">${years.map((y) => `<span style="left:${((Date.UTC(y, 0, 1) - t0) / (t1 - t0)) * 100}%">${y}</span>`).join('')}</div>
-    ${list.map((r) => `<div class="g-row" role="row"><div class="g-label" role="cell"><code>${esc(r.cidr)}</code> <a class="rlink" href="${BASE}regions/${esc(r.r)}/">${esc(r.r)}</a> ${[...r.s].sort().map((s) => `<a class="tag" href="${BASE}services/${slug(s)}/">${esc(s)}</a>`).join('')}</div>
+    ${list.map((r) => `<div class="g-row" role="row"><div class="g-label" role="cell"><code>${esc(r.cidr)}</code> ${d.RP.has(r.r) ? `<a class="rlink" href="${BASE}regions/${esc(r.r)}/">${esc(r.r)}</a>` : `<span class="rlink" title="No longer in the file">${esc(r.r)}</span>`} ${[...r.s].sort().map((s) => (d.SP.has(s) ? `<a class="tag" href="${BASE}services/${slug(s)}/">${esc(s)}</a>` : `<span class="tag" title="No longer in the file">${esc(s)}</span>`)).join('')}</div>
       <div class="g-track" role="cell"><span class="g-bar${r.b === -1 ? ' open' : ''}" style="left:${pos(r.a)}%;width:${Math.max(0.6, pos(r.b) - pos(r.a))}%"></span></div>
-      <div class="g-dates" role="cell">${r.a === 0 ? `before ${day(d.versions[0][1])}` : day(d.versions[r.a][1])} to ${r.b === -1 ? 'today' : day(d.versions[r.b][1])}</div></div>`).join('')}
-  </div>`;
+      <div class="g-dates" role="cell">${when(r.a)} to ${r.b === -1 ? 'today' : when(r.b)}</div></div>`).join('')}
+  </div>${anyGap || anyOldest ? `<p class="muted g-note">Dotted dates are approximate.${anyGap ? ' Where the record has a gap, the change happened between the previous version on record and that date.' : ''}${anyOldest ? ` ${day(d.versions[0][1])} is the oldest version on record, so it only shows the entry was listed by then.` : ''}</p>` : ''}`;
 }
 
 // ---------- 2. the ranges on any date ----------
@@ -78,7 +90,8 @@ async function onDate(dayStr, service, region) {
     csv: [`ranges-${tag}.csv`, () => ['prefix,region,network_border_group,service', ...list.map((e) => `${e.cidr},${e.r},${e.n},${e.s}`)].join('\n') + '\n', 'text/csv'],
   };
   out.innerHTML = `<div class="verdict yes"><p class="v-head"><span class="dot"></span>${day(iso)} <span class="muted">${iso.slice(11, 16)} UTC</span></p>
-  <dl class="hit"><div><dt>Version</dt><dd><code>syncToken ${esc(sync)}</code> <span class="muted">${srcName[src] || ''}</span></dd></div>
+  ${inGap(d, v, endOfDay(dayStr)) ? `<p class="muted">The record has a gap here: the next version on record is from ${day(d.versions[v + 1][1])}, so AWS may have published others in between.</p>` : ''}
+  <dl class="hit"><div><dt>Version</dt><dd><code>syncToken ${esc(sync)}</code> <span class="muted">${srcName(src, iso)}</span></dd></div>
   <div><dt>IPv4 entries</dt><dd>${fmt(v4.length)} <span class="muted">${fmt(new Set(v4.map((e) => e.cidr)).size)} unique prefixes</span></dd></div>
   <div><dt>IPv6 entries</dt><dd>${fmt(v6.length)} <span class="muted">${fmt(new Set(v6.map((e) => e.cidr)).size)} unique prefixes</span></dd></div></dl>
   <p class="dl-row">${Object.entries({ json: 'ip-ranges.json', v4: 'IPv4 .txt', v6: 'IPv6 .txt', csv: 'CSV' }).map(([k, l]) => `<button type="button" class="btn ghost" data-dl="${k}">${l}</button>`).join('')}</p></div>`;
@@ -100,6 +113,7 @@ async function compare(fromIso, toIso, service) {
   const csv = ['change,prefix,region,network_border_group,service', ...added.map((e) => `added,${e.cidr},${e.r},${e.n},${e.s}`), ...removed.map((e) => `removed,${e.cidr},${e.r},${e.n},${e.s}`)].join('\n') + '\n';
   out.innerHTML = `<div class="verdict ${added.length || removed.length ? 'yes' : 'no'}"><p class="v-head"><span class="dot"></span><span class="pos">+${fmt(added.length)}</span> <span class="neg">-${fmt(removed.length)}</span> <span class="muted">entries</span></p>
   <p>From ${day(d.versions[lo][1])} (syncToken ${esc(d.versions[lo][0])}) to ${day(d.versions[hi][1])} (syncToken ${esc(d.versions[hi][0])}), ${fmt(hi - lo)} version${hi - lo === 1 ? '' : 's'} apart.</p>
+  ${inGap(d, a, fromIso) || inGap(d, b, toIso) ? '<p class="muted">A date here falls in a gap in the record, so the comparison uses the nearest earlier version on record.</p>' : ''}
   <p class="dl-row"><button type="button" class="btn ghost" data-dl>Download as CSV</button></p></div>
   <div class="cmp-groups"><div><h3 class="sub-title">Added</h3><ul class="delta">${ga.slice(0, 12).map(([k, n]) => `<li class="add"><b>+${fmt(n)}</b> ${esc(k)}</li>`).join('') || '<li class="muted">Nothing</li>'}${ga.length > 12 ? `<li class="more">and ${ga.length - 12} more groups</li>` : ''}</ul></div>
   <div><h3 class="sub-title">Removed</h3><ul class="delta">${gr.slice(0, 12).map(([k, n]) => `<li class="rem"><b>-${fmt(n)}</b> ${esc(k)}</li>`).join('') || '<li class="muted">Nothing</li>'}${gr.length > 12 ? `<li class="more">and ${gr.length - 12} more groups</li>` : ''}</ul></div></div>`;

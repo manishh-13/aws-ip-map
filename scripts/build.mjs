@@ -6,7 +6,7 @@ import { layout, crumbs, crumbsLD, downloads, datasetLD, esc, fmt, fmtAddrs, fmt
 import { growthChart, lineChart } from './charts.mjs';
 import { encodeIndexedPNG } from './png.mjs';
 import { groupByPrefix, summarize, createDateToISO } from '../src/lib/stats.js';
-import { changeEvents, splitKey } from '../src/lib/timeline.js';
+import { changeEvents, splitKey, looseVersions } from '../src/lib/timeline.js';
 import { parseTarget, unionSize } from '../src/lib/ip.js';
 import { GEOS, geoOf, regionLabel, serviceLabel, slug } from '../src/lib/regions.js';
 import { buildCells, hilbertTable, regionPalette, MAP_SIDE } from '../src/lib/map.js';
@@ -43,7 +43,21 @@ function downsample(arr, n) {
   return out;
 }
 const CHART_SNAPS = downsample(history.snapshots, 260);
-const SRC_LABEL = { w: 'monthly archive capture', j: 'recorded version', l: 'live fetch' };
+// versions whose changes are only known to fall between the previous version and this one (gaps in the record)
+const LOOSE = new Set(looseVersions(VERS));
+const exactAt = (v) => v > 0 && !LOOSE.has(v);
+// where continuous tracking starts (joetek, July 2017); before it the record is occasional captures
+const CONT_I = VERS.findIndex((v) => v[2] === 'j'), CONT_V = Math.max(0, CONT_I);
+const CONT_SINCE = CONT_I >= 0 ? fmtMonth(VERS[CONT_I][1]) : ''; // '' when there is no joetek data (a fork without the import)
+// first version that lists each region and service code
+const FIRST = { region: {}, service: {} };
+for (const [k, spans] of Object.entries(timeline.entries)) {
+  const { region, service } = splitKey(k);
+  if (!(FIRST.region[region] <= spans[0])) FIRST.region[region] = spans[0];
+  if (!(FIRST.service[service] <= spans[0])) FIRST.service[service] = spans[0];
+}
+/** 'on 12 Mar 2018' or 'between 7 Apr 2017 and 29 Jun 2017'; '' for the oldest version on record (only known: by then). */
+const firstPhrase = (v) => (!(v > 0) ? '' : exactAt(v) ? `on ${fmtDate(VERS[v][1])}` : `between ${fmtDate(VERS[v - 1][1])} and ${fmtDate(VERS[v][1])}`);
 
 // every change event, newest first: the keys whose lifetime starts or ends at that version
 const EVENTS = (() => {
@@ -67,16 +81,15 @@ for (const [k, spans] of Object.entries(timeline.entries)) {
   const end = spans[spans.length - 1];
   if (end === -1) c.open = true; else { if (end > c.end) { c.end = end; c.tail = []; } if (end === c.end) c.tail.push([region, service]); }
 }
-/** {iso, kind}: kind 0 exact day, 1 month precision (archive), 2 "at least since" (first version on record). */
+/** {iso, kind, prev}: kind 0 exact, 1 somewhere between prev and iso (gap in the record), 2 listed in the oldest version on record. */
 function sinceOf(cidr) {
   const c = CIDR.get(cidr);
   if (!c || !Number.isFinite(c.first)) return null;
-  const [, iso, src] = VERS[c.first];
-  return { iso, kind: c.first === 0 ? 2 : src === 'w' ? 1 : 0 };
+  return { iso: VERS[c.first][1], kind: c.first === 0 ? 2 : exactAt(c.first) ? 0 : 1, prev: c.first > 0 ? VERS[c.first - 1][1] : null };
 }
-const GIT_START = VERS.find((v) => v[2] !== 'w')?.[1] || ARCHIVE_START;
-const dayOrMonth = (d) => (d >= GIT_START.slice(0, 10) ? fmtDate(d) : fmtMonth(d));
-const sinceText = (x) => (!x ? '' : x.kind === 2 ? `at least ${fmtMonth(x.iso)}` : x.kind === 1 ? fmtMonth(x.iso) : fmtDate(x.iso));
+const sinceChip = (x) => x.kind === 1
+  ? `<span class="since" title="Added between ${fmtDate(x.prev)} and ${fmtDate(x.iso)}: no versions were recorded in between">by ${fmtMonth(x.iso)}</span>`
+  : `<span class="since" title="First listed in ip-ranges.json">since ${fmtDate(x.iso)}</span>`;
 
 const rows = groupByPrefix(raw).map((r) => ({ ...r, t: parseTarget(r.cidr) })).filter((r) => r.t);
 const cmp = (a, b) => a.t.v - b.t.v || (a.t.start < b.t.start ? -1 : a.t.start > b.t.start ? 1 : a.t.len - b.t.len);
@@ -120,7 +133,7 @@ function prefixList(list, { showServices = true, showRegion = false } = {}) {
       showRegion ? `<a class="tag region" href="${href(`regions/${r.region}/`)}">${esc(r.region)}</a>` : '',
       showServices ? svcChips(r.services) : '',
       r.nbg !== r.region ? `<span class="nbg" title="Network border group">${esc(r.nbg)}</span>` : '',
-      since && since.kind !== 2 ? `<span class="since" title="First listed in ip-ranges.json">since ${sinceText(since)}</span>` : '',
+      since && since.kind !== 2 ? sinceChip(since) : '',
     ].join('');
     return `<li data-v="${r.t.v}"><code data-copy>${esc(r.cidr)}</code>${meta}</li>`;
   }).join('');
@@ -176,19 +189,18 @@ function faq() {
 }
 
 function regionArrivals() {
-  const first = history.regionsFirstSeen || {};
-  const startDay = ARCHIVE_START.slice(0, 10);
   const byYear = {};
   for (const r of REGIONS) {
     if (r === 'GLOBAL') continue;
-    const d = first[r] || UPDATED.slice(0, 10);
-    const y = d <= startDay ? 'before' : d.slice(0, 4);
-    (byYear[y] ??= []).push([r, d]);
+    const v = FIRST.region[r];
+    const d = v != null ? VERS[v][1].slice(0, 10) : UPDATED.slice(0, 10);
+    const y = v === 0 ? 'before' : d.slice(0, 4);
+    (byYear[y] ??= []).push([r, d, v]);
   }
   const years = Object.keys(byYear).sort((a, b) => (a === 'before' ? -1 : b === 'before' ? 1 : a.localeCompare(b)));
-  return `<ol class="arrivals">${years.map((y) => `<li><span class="yr">${y === 'before' ? `By ${fmtMonth(ARCHIVE_START)}` : y}</span><span class="regs">${byYear[y].sort((a, b) => a[1].localeCompare(b[1])).map(([r, d]) => {
+  return `<ol class="arrivals">${years.map((y) => `<li><span class="yr">${y === 'before' ? `By ${fmtMonth(ARCHIVE_START)}` : y}</span><span class="regs">${byYear[y].sort((a, b) => a[1].localeCompare(b[1])).map(([r, , v]) => {
     const l = regionLabel(r);
-    return `<a href="${href(`regions/${r}/`)}" class="arrival${l.announced ? '' : ' unannounced'}" title="${esc(l.full)}${y === 'before' ? '' : `, first seen ${fmtMonth(d)}`}" style="--c:${rgb(PAL[r].full)}"><i></i>${esc(r)}${l.announced ? '' : '<em>not yet announced</em>'}</a>`;
+    return `<a href="${href(`regions/${r}/`)}" class="arrival${l.announced ? '' : ' unannounced'}" title="${esc(l.full)}${firstPhrase(v) ? `, first seen ${firstPhrase(v)}` : ''}" style="--c:${rgb(PAL[r].full)}"><i></i>${esc(r)}${l.announced ? '' : '<em>not yet announced</em>'}</a>`;
   }).join('')}</span></li>`).join('')}</ol>`;
 }
 
@@ -199,7 +211,8 @@ function changeSummary(ev, limit = 6) {
     return Object.entries(m).sort((a, b) => b[1] - a[1]);
   };
   const a = group(ev.added), r = group(ev.removed);
-  const line = (sign, [k, n]) => { const [region, service] = k.split(' '); return `<li class="${sign === '+' ? 'add' : 'rem'}"><b>${sign}${n}</b> ${esc(service)} in <a href="${href(`regions/${region}/`)}">${esc(region)}</a></li>`; };
+  // retired region codes (us-iso-east-1 was listed briefly in 2016) have no page, so they aren't links
+  const line = (sign, [k, n]) => { const [region, service] = k.split(' '); return `<li class="${sign === '+' ? 'add' : 'rem'}"><b>${sign}${n}</b> ${esc(service)} in ${RI[region] !== undefined ? `<a href="${href(`regions/${region}/`)}">${esc(region)}</a>` : esc(region)}</li>`; };
   const lines = [...a.map((x) => line('+', x)), ...r.map((x) => line('-', x))];
   return `<ul class="delta">${lines.slice(0, limit).join('')}${lines.length > limit ? `<li class="more">and ${lines.length - limit} more groups</li>` : ''}</ul>`;
 }
@@ -207,7 +220,7 @@ function changeSummary(ev, limit = 6) {
 function monthlyLedger(limit) {
   const s = history.snapshots;
   const monthly = new Map();
-  for (const x of s) monthly.set(x.t.slice(0, 7), x);
+  for (const x of s) if (x.t) monthly.set(x.t.slice(0, 7), x);
   const m = [...monthly.values()];
   const out = [];
   for (let i = m.length - 1; i > 0 && out.length < limit; i--) {
@@ -343,7 +356,6 @@ async function regionPages() {
     const l = regionLabel(r), s = stats(list);
     const svcs = SERVICES.filter((sv) => list.some((x) => x.services.includes(sv)));
     const nbgs = [...new Set(list.map((x) => x.nbg))].sort();
-    const fsDate = history.regionsFirstSeen?.[r];
     const series = regionSeries(r);
     const dir = `regions/${r}/`;
     const neighbours = REGIONS.filter((x) => x !== r && geoOf(x) === geoOf(r));
@@ -354,7 +366,7 @@ async function regionPages() {
 <header class="page-head" style="--c:${rgb(PAL[r].full)}">
   <p class="eyebrow">${esc(GEOS.find((g) => g.id === geoOf(r)).label)}, region code <code>${esc(r)}</code></p>
   <h1>${h1}</h1>
-  <p class="lede">As of <time datetime="${UPDATED}">${fmtDate(UPDATED)}</time>, AWS publishes ${fmt(s.v4p)} IPv4 prefixes (${fmtAddrs(s.v4a)} addresses) and ${fmt(s.v6p)} IPv6 prefixes ${r === 'GLOBAL' ? 'that are not tied to one region' : `for ${l.announced ? esc(l.name) : `<code>${r}</code>, a region code AWS hasn't published a name for yet`}`}, across ${svcs.length} service codes.${fsDate && fsDate > ARCHIVE_START.slice(0, 10) ? ` It first appeared in ip-ranges.json ${fsDate >= GIT_START.slice(0, 10) ? 'on' : 'in'} ${dayOrMonth(fsDate)}.` : ''}</p>
+  <p class="lede">As of <time datetime="${UPDATED}">${fmtDate(UPDATED)}</time>, AWS publishes ${fmt(s.v4p)} IPv4 prefixes (${fmtAddrs(s.v4a)} addresses) and ${fmt(s.v6p)} IPv6 prefixes ${r === 'GLOBAL' ? 'that are not tied to one region' : `for ${l.announced ? esc(l.name) : `<code>${r}</code>, a region code AWS hasn't published a name for yet`}`}, across ${svcs.length} service codes.${firstPhrase(FIRST.region[r]) ? ` It first appeared in ip-ranges.json ${firstPhrase(FIRST.region[r])}.` : ''}</p>
   ${statLine(s)}
   ${downloads(dir, r)}
 </header>
@@ -410,7 +422,6 @@ async function servicePages() {
     const s = stats(list);
     const regs = REGIONS.filter((r) => list.some((x) => x.region === r));
     const dir = `services/${slug(sv)}/`;
-    const first = history.servicesFirstSeen?.[sv];
     const title = `AWS ${sv} IP ranges${sv === 'AMAZON' ? ' (every AWS range)' : `: ${serviceLabel(sv)}`}`;
     const items = [['', 'RangeFinder'], ['services/', 'Services'], [dir, sv]];
     const note = {
@@ -423,7 +434,7 @@ async function servicePages() {
 <header class="page-head">
   <p class="eyebrow">Service code <code>${esc(sv)}</code></p>
   <h1>${esc(title)}</h1>
-  <p class="lede">${fmt(s.v4p)} IPv4 prefixes (${fmtAddrs(s.v4a)} addresses) and ${fmt(s.v6p)} IPv6 prefixes across ${regs.length} region codes, as of <time datetime="${UPDATED}">${fmtDate(UPDATED)}</time>.${first && first > ARCHIVE_START.slice(0, 10) ? ` This service code first appeared in the file ${first >= GIT_START.slice(0, 10) ? 'on' : 'in'} ${dayOrMonth(first)}.` : ''}${note ? ` ${note}` : ''}</p>
+  <p class="lede">${fmt(s.v4p)} IPv4 prefixes (${fmtAddrs(s.v4a)} addresses) and ${fmt(s.v6p)} IPv6 prefixes across ${regs.length} region codes, as of <time datetime="${UPDATED}">${fmtDate(UPDATED)}</time>.${firstPhrase(FIRST.service[sv]) ? ` This service code first appeared in the file ${firstPhrase(FIRST.service[sv])}.` : ''}${note ? ` ${note}` : ''}</p>
   ${statLine(s)}
   ${downloads(dir, sv)}
 </header>
@@ -453,7 +464,7 @@ function eventItem(ev, { cap = 80 } = {}) {
   const shown = lines.slice(0, cap);
   const cmp = href(`history/?from=${encodeURIComponent(ev.prevT)}&to=${encodeURIComponent(ev.t)}#compare`);
   return `<li id="sync-${ev.sync}"><time datetime="${ev.t}">${fmtDate(ev.t)} <span class="muted">${ev.t.slice(11, 16)} UTC</span></time><div>
-  <span class="counts"><b class="pos">+${fmt(ev.added.length)}</b> <b class="neg">-${fmt(ev.removed.length)}</b>${ev.src === 'w' ? ' <span class="badge">monthly archive comparison</span>' : ''} <a class="more-link" href="${cmp}">Compare in History</a></span>
+  <span class="counts"><b class="pos">+${fmt(ev.added.length)}</b> <b class="neg">-${fmt(ev.removed.length)}</b>${LOOSE.has(ev.v) ? ` <span class="badge" title="Gap in the record: no versions were recorded in between, so these changes happened somewhere in this window">between ${fmtDate(ev.prevT)} and ${fmtDate(ev.t)}</span>` : ''} <a class="more-link" href="${cmp}">Compare in History</a></span>
   ${changeSummary(ev, 6)}
   <details><summary>Show ${fmt(lines.length)} entr${lines.length === 1 ? 'y' : 'ies'}</summary><ul class="raw">${shown.map(([k, e]) => `<li class="${k}">${k === 'add' ? '+' : '-'} <code>${esc(e[0])}</code> ${esc(e[1])} ${esc(e[3])}</li>`).join('')}</ul>${lines.length > cap ? `<p class="muted">Showing ${cap} of ${fmt(lines.length)}. <a href="${cmp}">See all in History</a>.</p>` : ''}</details>
   </div></li>`;
@@ -463,10 +474,10 @@ async function changePages() {
   const years = [...new Set(EVENTS.map((e) => yearOf(e.t)))].sort().reverse();
   const yearNav = `<nav class="years" aria-label="Change log by year">${years.map((y) => `<a href="${href(`changes/${y}/`)}">${y} <small>${fmt(EVENTS.filter((e) => yearOf(e.t) === y).length)}</small></a>`).join('')}</nav>`;
   const items = [['', 'RangeFinder'], ['changes/', 'Changes']];
-  const body = `${crumbs(items)}<header class="page-head"><h1>AWS IP range change log</h1><p class="lede">Every time AWS republished ip-ranges.json since ${fmtMonth(ARCHIVE_START)}, with exactly which prefixes were added and removed: ${fmt(EVENTS.length)} changes so far. Subscribe with the <a href="${href('changes.xml')}">Atom feed</a>, or explore any date on the <a href="${href('history/')}">History</a> page.</p>${yearNav}</header>
+  const body = `${crumbs(items)}<header class="page-head"><h1>AWS IP range change log</h1><p class="lede">Every recorded change to ip-ranges.json since ${fmtMonth(ARCHIVE_START)}${CONT_SINCE ? ` (near-complete since ${CONT_SINCE})` : ''}, with exactly which prefixes were added and removed: ${fmt(EVENTS.length)} changes so far. Subscribe with the <a href="${href('changes.xml')}">Atom feed</a>, or explore any date on the <a href="${href('history/')}">History</a> page.</p>${yearNav}</header>
 <section><h2 class="section-title">Latest changes</h2><ol class="events full">${EVENTS.slice(0, 60).map((ev) => eventItem(ev)).join('')}</ol><p><a class="btn ghost" href="${href(`changes/${years[0]}/`)}">All ${years[0]} changes</a></p></section>
 <section><h2 class="section-title">Month by month</h2>${ledgerTable(400)}</section>`;
-  await page('changes/', layout({ title: 'AWS IP range changes: every update to ip-ranges.json since 2015 | ' + SITE.name, description: `Every AWS IP range change since ${fmtMonth(ARCHIVE_START)}: ${fmt(EVENTS.length)} updates to ip-ranges.json with the exact prefixes added and removed. Atom feed available.`, path: 'changes/', body, updated: UPDATED, jsonld: [crumbsLD(items)] }), 0.9);
+  await page('changes/', layout({ title: 'AWS IP range changes: updates to ip-ranges.json since 2015 | ' + SITE.name, description: `AWS IP range changes since ${fmtMonth(ARCHIVE_START)}: ${fmt(EVENTS.length)} updates to ip-ranges.json with the exact prefixes added and removed. Atom feed available.`, path: 'changes/', body, updated: UPDATED, jsonld: [crumbsLD(items)] }), 0.9);
 
   for (const y of years) {
     const evs = EVENTS.filter((e) => yearOf(e.t) === y);
@@ -484,12 +495,16 @@ async function changePages() {
 // ---------- history (time machine) ----------
 async function historyPage() {
   const items = [['', 'RangeFinder'], ['history/', 'History']];
-  const nJ = VERS.filter((v) => v[2] === 'j').length, nW = VERS.filter((v) => v[2] === 'w').length;
+  const before = VERS.slice(0, CONT_V), after = VERS.slice(CONT_V);
+  const n = (list, s) => list.filter((v) => v[2] === s).length;
+  // gaps after continuous tracking began (tracker outages), merged into date windows
+  const gaps = [];
+  for (const v of [...LOOSE].sort((a, b) => a - b)) if (v > CONT_V) { const a = VERS[v - 1][1], b = VERS[v][1], g = gaps[gaps.length - 1]; if (g && g[1] === a) g[1] = b; else gaps.push([a, b]); }
   const svcOpts = SERVICES.map((s) => `<option value="${s}">${esc(s)}</option>`).join('');
   const regOpts = [...new Set(Object.keys(timeline.entries).map((k) => k.split('|')[1]))].sort().map((r) => `<option value="${r}">${esc(r)}</option>`).join('');
   const minDay = ARCHIVE_START.slice(0, 10), maxDay = VERS[VERS.length - 1][1].slice(0, 10);
   const body = `${crumbs(items)}<header class="page-head"><h1>AWS IP ranges history</h1>
-<p class="lede">Every version of ip-ranges.json since ${fmtDate(ARCHIVE_START)}: ${fmt(VERS.length)} versions in one place. Look up what any IP was on any date, download the ranges exactly as they were, or compare two dates.</p>
+<p class="lede">${fmt(VERS.length)} versions of ip-ranges.json since ${fmtDate(ARCHIVE_START)}${CONT_SINCE ? `, with a near-complete record since ${CONT_SINCE}` : ''}. Look up what any IP was on any date, download the ranges exactly as they were, or compare two dates.</p>
 <dl class="facts"><div><dt>Versions</dt><dd>${fmt(VERS.length)}</dd></div><div><dt>Changes</dt><dd>${fmt(EVENTS.length)}</dd></div><div><dt>Entries ever listed</dt><dd>${fmt(Object.keys(timeline.entries).length)}</dd></div></dl></header>
 
 <div id="tm" data-min="${minDay}" data-max="${maxDay}">
@@ -514,12 +529,13 @@ async function historyPage() {
 
 <section class="sources"><h2 class="section-title">Where this history comes from</h2>
 <ul class="src-list">
-  <li><b>${fmtDate(ARCHIVE_START)} to Jul 2017:</b> ${fmt(nW)} monthly captures of the file from the <a href="https://web.archive.org/">Internet Archive</a>. Changes in this period are month-to-month comparisons, so dates are accurate to the month.</li>
-  <li><b>Jul 2017 to today:</b> ${fmt(nJ)} versions recorded by <a href="https://github.com/joetek/aws-ip-ranges-json">joetek/aws-ip-ranges-json</a>, which has tracked the file in git since 2017. Thank you, joetek.</li>
+  ${before.length ? `<li><b>${fmtDate(ARCHIVE_START)} to ${CONT_SINCE}:</b> ${fmt(before.length)} versions from occasional captures, kept in the archive of <a href="https://github.com/seligman/aws-ip-ranges">seligman/aws-ip-ranges</a>${n(before, 'w') ? ' and the <a href="https://web.archive.org/">Internet Archive</a>' : ''}. They are days to months apart, so a change in this period is shown as happening between two dates.</li>` : ''}
+  ${CONT_I >= 0 ? `<li><b>${CONT_SINCE} to today:</b> ${fmt(n(after, 'j'))} versions recorded by <a href="https://github.com/joetek/aws-ip-ranges-json">joetek/aws-ip-ranges-json</a>, which has tracked the file in git since July 2017, plus ${fmt(n(after, 's'))} that only <a href="https://github.com/seligman/aws-ip-ranges">seligman/aws-ip-ranges</a> caught (an SNS-triggered tracker running since 2020)${n(after, 'w') ? ` and ${fmt(n(after, 'w'))} from the <a href="https://web.archive.org/">Internet Archive</a>` : ''}.${gaps.length ? ` Known gap${gaps.length > 1 ? 's' : ''} in the record: ${gaps.map(([a, b]) => `${fmtDate(a)} to ${fmtDate(b)}`).join(', ')}.` : ''}</li>` : ''}
   <li><b>From now on:</b> this site checks ip-ranges.json every 30 minutes and records each new version itself.</li>
 </ul>
+${CONT_I >= 0 ? `<p>AWS doesn't publish old versions of the file (its documentation suggests <a href="https://docs.aws.amazon.com/vpc/latest/userguide/aws-ip-ranges.html">saving successive versions yourself</a>), so this history exists thanks to joetek and seligman, who have kept public records for years. Thank you both.</p>` : ''}
 <p>The complete history is one file you can download: <a href="${href('data/timeline.json')}">timeline.json</a>, listing every entry with the versions during which it was published. Rebuilt files list the same entries AWS published; the order of entries may differ from the original file.</p></section>`;
-  await page('history/', layout({ title: 'AWS IP ranges history: look up any IP on any date since 2015 | ' + SITE.name, description: `Every version of AWS ip-ranges.json since ${fmtMonth(ARCHIVE_START)} (${fmt(VERS.length)} versions). See an IP's full history, rebuild and download the ranges for any date, or compare two dates.`, path: 'history/', body, updated: UPDATED, jsonld: [crumbsLD(items), datasetLD({ name: 'AWS IP ranges history since 2015', description: 'Every published version of AWS ip-ranges.json, as entry lifetimes.', path: 'history/', modified: UPDATED, temporal: `${ARCHIVE_START.slice(0, 10)}/..` })] }), 0.9);
+  await page('history/', layout({ title: 'AWS IP ranges history: look up any IP on any date since 2015 | ' + SITE.name, description: `${fmt(VERS.length)} versions of AWS ip-ranges.json since ${fmtMonth(ARCHIVE_START)}. See an IP's full history, rebuild and download the ranges for any date, or compare two dates.`, path: 'history/', body, updated: UPDATED, jsonld: [crumbsLD(items), datasetLD({ name: 'AWS IP ranges history since 2015', description: 'Recorded versions of AWS ip-ranges.json since 2015 (near-complete since July 2017), as entry lifetimes.', path: 'history/', modified: UPDATED, temporal: `${ARCHIVE_START.slice(0, 10)}/..` })] }), 0.9);
 }
 
 // ---------- API page ----------
@@ -572,7 +588,7 @@ async function clientData() {
     regions: REGIONS.map((r) => [r, regionLabel(r).name, regionLabel(r).announced ? 1 : 0, geoOf(r)]),
     services: SERVICES.map((s) => [s, serviceLabel(s)]),
     nbgs: NBGS,
-    rows: rows.map((r) => { const x = sinceOf(r.cidr); return [r.cidr, RI[r.region], N[r.nbg], r.services.map((s) => S[s]), x ? [x.iso, x.kind] : null]; }),
+    rows: rows.map((r) => { const x = sinceOf(r.cidr); return [r.cidr, RI[r.region], N[r.nbg], r.services.map((s) => S[s]), x ? (x.kind === 1 ? [x.iso, 1, x.prev] : [x.iso, x.kind]) : null]; }),
     former,
     palette: REGIONS.map((r) => [PAL[r].full, PAL[r].partial]),
   };
@@ -584,7 +600,7 @@ async function clientData() {
   const NB = [...new Set(Object.keys(timeline.entries).map((k) => k.split('|')[2]))].sort();
   const SV = [...new Set(Object.keys(timeline.entries).map((k) => k.split('|')[3]))].sort();
   const ri = Object.fromEntries(RG.map((x, i) => [x, i])), ni = Object.fromEntries(NB.map((x, i) => [x, i])), si = Object.fromEntries(SV.map((x, i) => [x, i]));
-  await write('data/timeline.min.json', JSON.stringify({ versions: VERS, regions: RG, nbgs: NB, services: SV,
+  await write('data/timeline.min.json', JSON.stringify({ versions: VERS, loose: [...LOOSE].sort((a, b) => a - b), regions: RG, regionPages: REGIONS, servicePages: SERVICES, nbgs: NB, services: SV,
     e: Object.entries(timeline.entries).map(([k, sp]) => { const [c, r, n, sv] = k.split('|'); return [c, ri[r], ni[n], si[sv], ...sp]; }) }));
   await write('ip-ranges.json', JSON.stringify(raw));
 }

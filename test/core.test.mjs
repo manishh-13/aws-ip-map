@@ -5,7 +5,7 @@ import { buildCells, MAP_SIDE } from '../src/lib/map.js';
 import { summarize, diffDocs, groupByPrefix, updatePrefixHistory, createDateToISO } from '../src/lib/stats.js';
 import { stringifyLines, stringifyHistory } from '../src/lib/jsonlines.js';
 import { thin } from '../scripts/update.mjs';
-import { emptyTimeline, appendVersion, keysAt, changeEvents, versionAt, stringifyTimeline, isPresent } from '../src/lib/timeline.js';
+import { emptyTimeline, appendVersion, keysAt, changeEvents, versionAt, stringifyTimeline, isPresent, looseVersions } from '../src/lib/timeline.js';
 
 const doc = (sync, prefixes, v6 = []) => ({ syncToken: String(sync), createDate: '2026-10-02-12-17-06', prefixes, ipv6_prefixes: v6 });
 const p4 = (ip_prefix, region, service, nbg = region) => ({ ip_prefix, region, service, network_border_group: nbg });
@@ -87,6 +87,22 @@ test('timeline records entry lifetimes and rebuilds any version exactly', () => 
   assert.equal(versionAt(tl, '2026-10-02T12:17:06Z'), 2);
   const round = JSON.parse(stringifyTimeline(tl));
   assert.deepEqual(round.entries, tl.entries); assert.deepEqual(round.versions, tl.versions);
+});
+
+test('looseVersions flags changes that can only be dated to a window', () => {
+  const V = [
+    ['1', '2016-03-01T00:00:00Z', 's'], // seligman backfill (sample)
+    ['2', '2016-05-01T00:00:00Z', 's'], // sample after sample: loose
+    ['2b', '2016-05-01T06:00:00Z', 's'], // samples on the same day: exact to the day
+    ['3', '2017-07-20T00:00:00Z', 'j'], // first joetek version, previous is a sample: loose
+    ['4', '2017-07-25T00:00:00Z', 'j'], // tracked after tracked: exact
+    ['5', '2019-09-04T00:00:00Z', 'j'], // two years after the previous version (outage-sized gap): loose
+    ['6', '2019-10-15T00:00:00Z', 'w'], // archive capture inside a tracker outage: loose, and so is the next one
+    ['7', '2019-10-28T00:00:00Z', 'j'],
+    ['8', '2020-08-01T00:00:00Z', 's'], // seligman after it went live: tracked, but 278 days after the last version: loose
+    ['9', '2020-08-02T00:00:00Z', 'l'], // exact
+  ];
+  assert.deepEqual(looseVersions(V), [1, 3, 5, 6, 7, 8]);
 });
 
 test('line-oriented JSON round-trips', () => {
