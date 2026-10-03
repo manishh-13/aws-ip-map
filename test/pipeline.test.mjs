@@ -26,10 +26,15 @@ test('update + build pipeline', async () => {
     assert.match((await run(process.execPath, ['scripts/update.mjs'], { cwd: ROOT, env })).stdout, /changed=false/);
     current = v2;
     assert.match((await run(process.execPath, ['scripts/update.mjs'], { cwd: ROOT, env })).stdout, /changed=true/);
-    const changes = JSON.parse(await fs.readFile(path.join(data, 'changes.json'), 'utf8'));
-    assert.equal(changes.length, 1);
-    assert.equal(changes[0].added.length, 2);
-    assert.equal(changes[0].removed.length, 0);
+    const tl = JSON.parse(await fs.readFile(path.join(data, 'timeline.json'), 'utf8'));
+    assert.equal(tl.versions.length, 2);
+    assert.deepEqual(tl.entries['13.32.0.0/15|GLOBAL|GLOBAL|CLOUDFRONT'], [1, -1]);
+    assert.deepEqual(tl.entries['3.0.0.0/24|us-east-1|us-east-1|EC2'], [0, -1]);
+    // a version that drops an entry closes its span
+    current = { ...v2, syncToken: '3000', createDate: '2026-01-03-00-00-00', prefixes: v2.prefixes.filter((p) => p.service !== 'EC2') };
+    assert.match((await run(process.execPath, ['scripts/update.mjs'], { cwd: ROOT, env })).stdout, /changed=true.*removed=1/);
+    const tl2 = JSON.parse(await fs.readFile(path.join(data, 'timeline.json'), 'utf8'));
+    assert.deepEqual(tl2.entries['3.0.0.0/24|us-east-1|us-east-1|EC2'], [0, 2]);
 
     const out = path.join(tmp, 'dist');
     await run(process.execPath, ['scripts/build.mjs'], { cwd: ROOT, env: { ...env, DATA_DIR: data, OUT_DIR: out } });
@@ -37,7 +42,10 @@ test('update + build pipeline', async () => {
     assert.match(home, /<title>AWS IP address ranges lookup/);
     assert.match(home, /application\/ld\+json/);
     assert.match(await fs.readFile(path.join(out, 'services/cloudfront/ipv4.txt'), 'utf8'), /^13\.32\.0\.0\/15\n$/);
-    assert.match(await fs.readFile(path.join(out, 'regions/us-east-1/ec2/ipv4.txt'), 'utf8'), /^3\.0\.0\.0\/24\n$/);
+    assert.match(await fs.readFile(path.join(out, 'regions/us-east-1/amazon/ipv4.txt'), 'utf8'), /^3\.0\.0\.0\/24\n$/);
+    assert.match(await fs.readFile(path.join(out, 'history/index.html'), 'utf8'), /AWS IP ranges history/);
+    assert.ok(JSON.parse(await fs.readFile(path.join(out, 'data/timeline.min.json'), 'utf8')).e.length >= 3);
+    assert.match(await fs.readFile(path.join(out, 'changes.xml'), 'utf8'), /\+0 \/ -1/);
     assert.match(await fs.readFile(path.join(out, 'changes.xml'), 'utf8'), /\+2 \/ -0/);
     const sitemap = await fs.readFile(path.join(out, 'sitemap.xml'), 'utf8');
     assert.ok((sitemap.match(/<loc>/g) || []).length >= 8);

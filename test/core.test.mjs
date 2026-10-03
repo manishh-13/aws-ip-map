@@ -5,6 +5,7 @@ import { buildCells, MAP_SIDE } from '../src/lib/map.js';
 import { summarize, diffDocs, groupByPrefix, updatePrefixHistory, createDateToISO } from '../src/lib/stats.js';
 import { stringifyLines, stringifyHistory } from '../src/lib/jsonlines.js';
 import { thin } from '../scripts/update.mjs';
+import { emptyTimeline, appendVersion, keysAt, changeEvents, versionAt, stringifyTimeline, isPresent } from '../src/lib/timeline.js';
 
 const doc = (sync, prefixes, v6 = []) => ({ syncToken: String(sync), createDate: '2026-10-02-12-17-06', prefixes, ipv6_prefixes: v6 });
 const p4 = (ip_prefix, region, service, nbg = region) => ({ ip_prefix, region, service, network_border_group: nbg });
@@ -62,10 +63,30 @@ test('prefix history tracks first and last seen', () => {
   assert.deepEqual(h['3.0.0.0/24'], { f: '2020-01-01', l: '2021-01-01', r: 'us-west-2', s: ['EC2'] });
 });
 
-test('thin keeps recent snapshots and one per older month', () => {
+test('thin keeps recent snapshots and one per older week', () => {
   const now = Date.parse('2026-10-02T00:00:00Z');
-  const snaps = ['2025-01-03', '2025-01-20', '2025-02-10', '2026-09-01', '2026-09-02'].map((d) => ({ t: `${d}T00:00:00Z` }));
-  assert.deepEqual(thin(snaps, now).map((s) => s.t.slice(0, 10)), ['2025-01-20', '2025-02-10', '2026-09-01', '2026-09-02']);
+  const snaps = ['2025-01-06', '2025-01-08', '2025-01-20', '2026-09-01', '2026-09-02'].map((d) => ({ t: `${d}T00:00:00Z` }));
+  assert.deepEqual(thin(snaps, now).map((s) => s.t.slice(0, 10)), ['2025-01-08', '2025-01-20', '2026-09-01', '2026-09-02']);
+});
+
+test('timeline records entry lifetimes and rebuilds any version exactly', () => {
+  const tl = emptyTimeline();
+  const A = doc(100, [p4('3.0.0.0/24', 'us-east-1', 'EC2'), p4('3.0.1.0/24', 'us-east-1', 'S3')]);
+  const B = doc(200, [p4('3.0.1.0/24', 'us-east-1', 'S3')]);
+  const C = doc(300, [p4('3.0.1.0/24', 'us-east-1', 'S3'), p4('3.0.0.0/24', 'us-east-1', 'EC2')]);
+  assert.deepEqual(appendVersion(tl, A, 'j').added.length, 2);
+  assert.deepEqual(appendVersion(tl, B, 'j').removed, ['3.0.0.0/24|us-east-1|us-east-1|EC2']);
+  assert.deepEqual(appendVersion(tl, C, 'j').added, ['3.0.0.0/24|us-east-1|us-east-1|EC2']);
+  assert.equal(appendVersion(tl, B, 'j'), null, 'older or equal syncToken is ignored');
+  assert.deepEqual(tl.entries['3.0.0.0/24|us-east-1|us-east-1|EC2'], [0, 1, 2, -1]);
+  assert.deepEqual(keysAt(tl, 1), ['3.0.1.0/24|us-east-1|us-east-1|S3']);
+  assert.equal(keysAt(tl, 2).length, 2);
+  assert.equal(isPresent([0, 1, 2, -1], 1), false);
+  const ev = changeEvents(tl);
+  assert.equal(ev[1].removed.length, 1); assert.equal(ev[2].added.length, 1);
+  assert.equal(versionAt(tl, '2026-10-02T12:17:06Z'), 2);
+  const round = JSON.parse(stringifyTimeline(tl));
+  assert.deepEqual(round.entries, tl.entries); assert.deepEqual(round.versions, tl.versions);
 });
 
 test('line-oriented JSON round-trips', () => {

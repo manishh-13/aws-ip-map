@@ -8,6 +8,8 @@ const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const fmt = (n) => Number(n).toLocaleString('en-US');
 const fmtAddrs = (n) => { n = Number(n); return n >= 1e9 ? `${(n / 1e9).toFixed(2)} billion` : n >= 1e6 ? `${(n / 1e6).toFixed(1)} million` : fmt(n); };
+const dayFmt = (iso) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+const sinceTxt = (f) => (!f ? '' : f[1] === 2 ? `at least ${month(f[0])}` : f[1] === 1 ? month(f[0]) : dayFmt(f[0]));
 const month = (d) => (d ? new Date(d + (d.length === 10 ? 'T00:00:00Z' : '')).toLocaleDateString('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' }) : '');
 const slug = (s) => s.toLowerCase().replace(/_/g, '-');
 const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -125,7 +127,7 @@ function inside(a, t) {
 }
 const bySpecific = (x, y) => y.t.len - x.t.len;
 function formerHit(a, t) {
-  a.formerParsed ??= a.former.map(([c, r, s, f, l]) => ({ c, r, s, f, l, t: parseTarget(c) })).filter((x) => x.t);
+  a.formerParsed ??= a.former.map(([c, r, s, f, l, gone]) => ({ c, r, s, f, l, gone, t: parseTarget(c) })).filter((x) => x.t);
   return a.formerParsed.filter((x) => x.t.v === t.v && x.t.start <= t.start && x.t.end >= t.end).sort((x, y) => y.t.len - x.t.len)[0];
 }
 
@@ -170,7 +172,8 @@ if (form) {
     if (!hits.length && !within.length) {
       const was = formerHit(a, t);
       return `<div class="verdict no"><p class="v-head"><span class="dot"></span><code>${esc(label)}</code> is not in AWS's published ranges</p><button type="button" class="btn ghost copy-result" data-result="${esc(`${label}: not in AWS ip-ranges.json (syncToken ${a.sync})`)}">Copy result</button>
-      ${was ? `<p>It used to be: <code>${esc(was.c)}</code> was listed for <a href="${BASE}regions/${esc(was.r)}/">${esc(was.r)}</a> (${esc(was.s.join(', '))}) from ${month(was.f)} until ${month(was.l)}.</p>` : `<p class="muted">Not listed in ip-ranges.json today${a.archiveStart ? `, and not in any archived version since ${month(a.archiveStart.slice(0, 10))}` : ''}. AWS customers can also bring their own IP ranges, which AWS doesn't publish.</p>`}</div>`;
+      ${was ? `<p>It used to be: <code>${esc(was.c)}</code> was listed for <a href="${BASE}regions/${esc(was.r)}/">${esc(was.r)}</a> (${esc(was.s.join(', '))}) from ${dayFmt(was.f)} until ${dayFmt(was.l)}.</p>` : `<p class="muted">Not listed in ip-ranges.json today${a.archiveStart ? `, and not in any version since ${dayFmt(a.archiveStart)}` : ''}. AWS customers can also bring their own IP ranges, which AWS doesn't publish.</p>`}
+      <p class="dl-row"><a class="btn ghost" href="${BASE}history/?ip=${encodeURIComponent(label)}#ip">See its full history</a></p></div>`;
     }
     const top = hits[0];
     const headline = top
@@ -181,8 +184,8 @@ if (form) {
           <div><dt>Region</dt><dd>${regionLink(a, top.ri)}</dd></div>
           <div><dt>Service codes</dt><dd>${[...new Set(hits.flatMap((h) => h.sv))].length ? svcTags(a, [...new Set(hits.flatMap((h) => h.sv))]) : ''}</dd></div>
           <div><dt>Network border group</dt><dd><code>${esc(a.nbgs[top.ni])}</code></dd></div>
-          ${top.f ? `<div><dt>In the file since</dt><dd>${top.f.slice(0, 10) <= a.archiveStart.slice(0, 10) ? `at least ${month(a.archiveStart.slice(0, 10))}` : month(top.f)}</dd></div>` : ''}
-        </dl>${t.v === 4 ? '<button type="button" class="btn ghost show-map">Show on the map</button>' : ''}</div>`
+          ${top.f ? `<div><dt>In the file since</dt><dd>${sinceTxt(top.f)}</dd></div>` : ''}
+        </dl><p class="dl-row">${t.v === 4 ? '<button type="button" class="btn ghost show-map">Show on the map</button>' : ''}<a class="btn ghost" href="${BASE}history/?ip=${encodeURIComponent(label)}#ip">See its full history</a></p></div>`
       : `<div class="verdict partial"><p class="v-head"><span class="dot"></span><code>${esc(label)}</code> is partly AWS</p><p>${fmt(within.length)} AWS prefixes sit inside this range.</p></div>`;
     const all = hits.length > 1 ? `<h3 class="r-sub">Every published prefix containing it</h3><table class="mini"><tbody>${hits.map((h) => `<tr><td><code data-copy>${esc(h.cidr)}</code></td><td>${regionLink(a, h.ri)}</td><td>${svcTags(a, h.sv)}</td></tr>`).join('')}</tbody></table>` : '';
     const inner = within.length ? `<h3 class="r-sub">${fmt(within.length)} prefixes inside ${esc(label)}</h3><table class="mini"><tbody>${within.slice(0, 60).map((h) => `<tr><td><code data-copy>${esc(h.cidr)}</code></td><td>${regionLink(a, h.ri)}</td><td>${svcTags(a, h.sv)}</td></tr>`).join('')}</tbody></table>${within.length > 60 ? `<p class="muted">Showing 60 of ${fmt(within.length)}.</p>` : ''}` : '';
@@ -374,6 +377,8 @@ function initMap(root) {
   });
   return { mark };
 }
+
+if (document.getElementById('tm')) import('./history.js');
 
 // ---------- allowlist builder ----------
 const builder = $('.builder-form');

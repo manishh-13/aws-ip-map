@@ -342,6 +342,41 @@ h3 { font-weight: 600; letter-spacing: -0.015em; }
 .nbg-list li { padding: var(--s1) 0; } .nbg-list span { color: var(--mute); font-size: .9rem; }
 .related .tag { font-size: .84rem; padding: .5rem .8rem; }
 
+
+/* ---------- history page ---------- */
+.tm-block { padding-block: var(--s7); border-bottom: 1px solid var(--rule-soft); }
+.tm-block .section-head { margin-bottom: var(--s5); }
+.tm-form { display: flex; flex-wrap: wrap; gap: var(--s4); align-items: end; }
+.tm-form label { display: grid; gap: var(--s2); font-size: .88rem; font-weight: 500; color: var(--ink-2); }
+.tm-form input, .tm-form select { font: 400 1rem/1.2 var(--font); color: var(--ink); background: var(--field); border: 1px solid var(--field-edge); border-radius: var(--r-md); padding: .8rem 1rem; min-width: 12rem; outline: none; }
+.tm-form input[name="ip"] { min-width: min(24rem, 80vw); font-family: var(--mono); }
+.tm-form input:focus, .tm-form select:focus { border-color: var(--link); box-shadow: 0 0 0 3px color-mix(in srgb, var(--link) 22%, transparent); }
+.tm-form .btn.primary { align-self: end; min-height: 3rem; }
+.tm-out { margin-top: var(--s5); }
+.tm-out:empty { margin: 0; }
+.dl-row { display: flex; flex-wrap: wrap; gap: var(--s2); margin: var(--s5) 0 0; }
+.cmp-groups { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s6); margin-top: var(--s5); }
+.gantt { margin-top: var(--s5); border-top: 1px solid var(--rule-soft); }
+.g-axis { position: relative; height: 1.6rem; margin-left: calc(38% + var(--s4)); margin-right: calc(15rem + var(--s4)); }
+.g-axis span { position: absolute; top: .3rem; transform: translateX(-50%); font-size: .76rem; color: var(--mute); }
+.g-row { display: grid; grid-template-columns: 38% 1fr 15rem; gap: var(--s4); align-items: center; padding: var(--s2) 0; border-bottom: 1px solid var(--rule-soft); }
+.g-label { min-width: 0; display: flex; flex-wrap: wrap; gap: var(--s1) var(--s2); align-items: center; }
+.g-label .tag { margin: 0; font-size: .72rem; padding: .24rem .45rem; }
+.g-track { position: relative; height: 10px; border-radius: var(--r-pill); background: var(--rule-soft); }
+.g-bar { position: absolute; top: 0; bottom: 0; border-radius: var(--r-pill); background: var(--mute); }
+.g-bar.open { background: var(--cta); }
+.g-dates { font-size: .86rem; color: var(--ink-2); text-align: right; }
+.years { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s5); }
+.years a { font-size: .92rem; padding: .45rem .85rem; border-radius: var(--r-pill); border: 1px solid var(--rule); color: var(--ink); }
+.years a:hover { border-color: var(--ink-2); }
+.years small { color: var(--mute); margin-left: .25rem; }
+.events.full > li > div { min-width: 0; }
+.events .counts { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s2) var(--s3); margin-bottom: var(--s2); }
+.sources { max-width: 880px; padding-block: var(--s7) var(--s8); }
+.src-list { padding-left: 1.1rem; color: var(--ink-2); display: grid; gap: var(--s3); }
+.src-list b { color: var(--ink); }
+.sources p { color: var(--ink-2); max-width: 72ch; }
+
 /* ---------- footer ---------- */
 .site-foot { background: var(--bg-2); padding: var(--s7) max(1rem, calc((100% - 1180px) / 2)) var(--s6); font-size: .82rem; color: var(--mute); border-top: 1px solid var(--rule-soft); }
 .foot-grid { display: grid; grid-template-columns: 1.6fr repeat(3, 1fr); gap: var(--s6); }
@@ -387,9 +422,15 @@ h3 { font-weight: 600; letter-spacing: -0.015em; }
   .svc-table th:nth-child(3), .svc-table td:nth-child(3) { display: none; }
   .bulk th:nth-child(4), .bulk td:nth-child(4) { display: none; }
   .match { grid-template-columns: auto 1fr; }
+  .g-row { grid-template-columns: 1fr; gap: var(--s2); }
+  .g-axis { display: none; }
+  .g-dates { text-align: left; }
+  .cmp-groups { grid-template-columns: 1fr; }
+  .tm-form input, .tm-form select, .tm-form input[name="ip"] { min-width: 0; width: 100%; }
+  .tm-form label { flex: 1 1 100%; }
   .facts div, .facts div + div { padding: var(--s2) var(--s5) var(--s2) 0; border-left: 0; }
   .facts dd { font-size: 1.5rem; }
   .dlabel text { font-size: 18px; }
 }
-@media (max-width: 440px) { .site-head nav a:nth-child(4), .site-head nav a:nth-child(5) { display: none; } }
+@media (max-width: 440px) { .site-head nav a:nth-child(3), .site-head nav a:nth-child(4), .site-head nav a:nth-child(6) { display: none; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }

@@ -19,7 +19,7 @@ export const LOGO = `<svg class="logo-mark" viewBox="0 0 24 24" aria-hidden="tru
 export function layout({ title, description, path, body, jsonld = [], updated, bodyClass = '', ogImage = 'og.png', noindex = false }) {
   const canonical = abs(path);
   const nav = [
-    ['', 'Lookup'], ['regions/', 'Regions'], ['services/', 'Services'], ['changes/', 'Changes'], ['api/', 'API'],
+    ['', 'Lookup'], ['regions/', 'Regions'], ['services/', 'Services'], ['changes/', 'Changes'], ['history/', 'History'], ['api/', 'API'],
   ];
   const cur = path.replace(/^\//, '');
   return `<!doctype html>

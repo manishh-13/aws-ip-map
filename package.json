@@ -11,7 +11,7 @@
     "build": "node scripts/build.mjs",
     "serve": "node scripts/serve.mjs",
     "dev": "node scripts/build.mjs && node scripts/serve.mjs",
-    "backfill": "node scripts/backfill-wayback.mjs",
+    "history": "node scripts/backfill-wayback.mjs && node scripts/import-history.mjs",
     "test": "node --test test/*.test.mjs"
   },
   "keywords": ["aws", "ip-ranges", "aws-ip-ranges", "cidr", "allowlist", "cloudfront", "hilbert-curve"]
