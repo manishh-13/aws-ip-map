@@ -118,7 +118,7 @@ To run your own copy, fork the repo, set **Settings > Pages > Source** to **GitH
 
 ## Notes
 
-- Unofficial project, not affiliated with or endorsed by Amazon Web Services. The source of truth is always AWS's own [ip-ranges.json](https://ip-ranges.amazonaws.com/ip-ranges.json) and its [documentation](https://docs.aws.amazon.com/vpc/latest/userguide/aws-ip-ranges.html).
+- AWS IP Map is an independent open-source project. Its data comes straight from AWS's public [ip-ranges.json](https://ip-ranges.amazonaws.com/ip-ranges.json), checked every 30 minutes and mirrored byte for byte. For what each field means, see AWS's [documentation](https://docs.aws.amazon.com/vpc/latest/userguide/aws-ip-ranges.html).
 - Ranges change several times a day. For production allowlists, automate: pull from the API here, or subscribe to AWS's SNS topic `arn:aws:sns:us-east-1:806199016981:AmazonIpSpaceChanged` ([docs](https://docs.aws.amazon.com/vpc/latest/userguide/subscribe-notifications.html)).
 
 ## License

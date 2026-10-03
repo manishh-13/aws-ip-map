@@ -80,7 +80,7 @@ ${body}
       <a href="${SITE.docs}">AWS IP address ranges (docs)</a><a href="${SITE.syntaxDocs}">JSON syntax</a><a href="${SITE.snsDocs}">Change notifications</a>
     </div>
   </div>
-  <p class="fine">Unofficial project, not affiliated with or endorsed by Amazon Web Services. Data from AWS's public ip-ranges.json, synced ${updated ? `<time datetime="${updated}" data-ago>${fmtDate(updated)}</time>` : ''}. Open source under the MIT license.</p>
+  <p class="fine">An independent project, open source under the MIT license. Data comes straight from AWS's public ip-ranges.json, synced ${updated ? `<time datetime="${updated}" data-ago>${fmtDate(updated)}</time>` : ''}.</p>
 </footer>
 </body>
 </html>`;
