@@ -27,14 +27,14 @@ See [/api/](https://manishh-13.github.io/aws-rangefinder/api/) for the full list
 
 ```mermaid
 flowchart LR
-  A[ip-ranges.json] -->|hourly GitHub Action| B[scripts/update.mjs: diff by syncToken]
+  A[ip-ranges.json] -->|GitHub Action every 30 min| B[scripts/update.mjs: diff by syncToken]
   B -->|only when changed| C[data/*.json committed to git]
   C --> D[scripts/build.mjs: static site, ~770 pages]
   D --> E[GitHub Pages]
 ```
 
-- No server, no database, no AWS account. A scheduled GitHub Action checks the file every hour; when the `syncToken` changes, it commits the new data and redeploys.
-- `data/ip-ranges.json` is the latest file byte for byte, and `data/timeline.json` holds the complete history as entry lifetimes (one entry per line, so each hourly commit is a small, readable diff).
+- No server, no database, no AWS account. A scheduled GitHub Action checks the file every 30 minutes; when the `syncToken` changes, it commits the new data and redeploys.
+- `data/ip-ranges.json` is the latest file byte for byte, and `data/timeline.json` holds the complete history as entry lifetimes (one entry per line, so each update commit is a small, readable diff).
 - Every region and service gets its own static, indexable page with structured data (Dataset, FAQ, breadcrumbs), a sitemap and an Atom feed.
 - The map is rendered once at build time as an indexed PNG (one pixel per /20), with a canvas overlay for hover, zoom and highlights. Zero dependencies: Node standard library only.
 

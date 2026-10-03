@@ -1,4 +1,4 @@
-// The whole history in one structure. Pure ESM, used by the import, the hourly updater, the build and the browser.
+// The whole history in one structure. Pure ESM, used by the import, the scheduled updater, the build and the browser.
 //   versions: [[syncToken, isoTime, source], ...]   oldest first; source: 'w' archive (monthly), 'j' git history, 'l' live
 //   entries:  { "cidr|region|nbg|service": [start, end, start, end, ...] }   half-open version-index spans, end -1 = still listed
 import { entries as docEntries, createDateToISO } from './stats.js';

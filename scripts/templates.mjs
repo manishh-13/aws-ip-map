@@ -65,7 +65,7 @@ ${body}
   <div class="foot-grid">
     <div>
       <p class="brand">${LOGO}<span>${SITE.name}</span></p>
-      <p>A live, searchable map of every public IP range AWS publishes. Rebuilt within the hour whenever <a href="${SITE.source}">ip-ranges.json</a> changes.</p>
+      <p>A live, searchable map of every public IP range AWS publishes. Rebuilt within 30 minutes whenever <a href="${SITE.source}">ip-ranges.json</a> changes.</p>
     </div>
     <div>
       <h2>Explore</h2>

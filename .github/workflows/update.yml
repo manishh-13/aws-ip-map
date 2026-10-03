@@ -2,7 +2,7 @@ name: Update and deploy
 
 on:
   schedule:
-    - cron: '17 * * * *' # hourly; AWS republishes ip-ranges.json whenever its ranges change
+    - cron: '17,47 * * * *' # every 30 min; in the last year no two AWS versions were less than 30 min apart
   workflow_dispatch:
   push:
     branches: [main]
