@@ -1,9 +1,9 @@
 // Site configuration. Override with env vars when forking.
 export const SITE = {
-  name: 'AWS RangeFinder',
-  url: (process.env.SITE_URL || 'https://manishh-13.github.io/aws-rangefinder').replace(/\/$/, ''),
-  base: process.env.BASE_PATH || '/aws-rangefinder/',
-  repo: process.env.REPO_URL || 'https://github.com/manishh-13/aws-rangefinder',
+  name: 'AWS IP Map',
+  url: (process.env.SITE_URL || 'https://manishh-13.github.io/aws-ip-map').replace(/\/$/, ''),
+  base: process.env.BASE_PATH || '/aws-ip-map/',
+  repo: process.env.REPO_URL || 'https://github.com/manishh-13/aws-ip-map',
   source: 'https://ip-ranges.amazonaws.com/ip-ranges.json',
   docs: 'https://docs.aws.amazon.com/vpc/latest/userguide/aws-ip-ranges.html',
   syntaxDocs: 'https://docs.aws.amazon.com/vpc/latest/userguide/aws-ip-syntax.html',

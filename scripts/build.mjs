@@ -361,7 +361,7 @@ async function regionPages() {
     const neighbours = REGIONS.filter((x) => x !== r && geoOf(x) === geoOf(r));
     const title = r === 'GLOBAL' ? 'AWS GLOBAL IP ranges (CloudFront, Route 53, Global Accelerator and more)' : `AWS IP ranges for ${r}${l.announced ? `, ${l.name}` : ''}`;
     const h1 = r === 'GLOBAL' ? esc(title) : `AWS IP ranges for <span class="nw">${esc(r)}</span>${l.announced ? `, ${esc(l.name)}` : ''}`;
-    const items = [['', 'RangeFinder'], ['regions/', 'Regions'], [dir, r]];
+    const items = [['', 'IP Map'], ['regions/', 'Regions'], [dir, r]];
     const body = `${crumbs(items)}
 <header class="page-head" style="--c:${rgb(PAL[r].full)}">
   <p class="eyebrow">${esc(GEOS.find((g) => g.id === geoOf(r)).label)}, region code <code>${esc(r)}</code></p>
@@ -391,7 +391,7 @@ ${neighbours.length ? `<section class="related"><h2 class="section-title">Nearby
       const ss = stats(sub);
       const sdir = `${dir}${slug(sv)}/`;
       const t2 = `AWS ${sv} IP ranges in ${r}${l.announced ? ` (${l.name})` : ''}`;
-      const items2 = [['', 'RangeFinder'], ['regions/', 'Regions'], [dir, r], [sdir, sv]];
+      const items2 = [['', 'IP Map'], ['regions/', 'Regions'], [dir, r], [sdir, sv]];
       const body2 = `${crumbs(items2)}
 <header class="page-head" style="--c:${rgb(PAL[r].full)}">
   <p class="eyebrow">${esc(serviceLabel(sv))} in ${esc(l.full)}</p>
@@ -409,7 +409,7 @@ ${neighbours.length ? `<section class="related"><h2 class="section-title">Nearby
     }
   }
   // regions index
-  const items = [['', 'RangeFinder'], ['regions/', 'Regions']];
+  const items = [['', 'IP Map'], ['regions/', 'Regions']];
   const body = `${crumbs(items)}<header class="page-head"><h1>AWS IP ranges by region</h1><p class="lede">${REGIONS.length - 1} region codes plus GLOBAL appear in ip-ranges.json today. Pick one for its prefixes, services, history and downloads.</p></header>
 <div class="tw"><table class="svc-table"><thead><tr><th>Region</th><th>Name</th><th>IPv4 prefixes</th><th>IPv6 prefixes</th><th>IPv4 addresses</th></tr></thead><tbody>${REGIONS.map((r) => { const s = stats(rows.filter((x) => x.region === r)); const l = regionLabel(r); return `<tr><td><a href="${href(`regions/${r}/`)}"><code>${r}</code></a></td><td>${esc(l.name)}${l.announced ? '' : ' <span class="badge">new</span>'}</td><td>${fmt(s.v4p)}</td><td>${fmt(s.v6p)}</td><td>${fmtAddrs(s.v4a)}</td></tr>`; }).join('')}</tbody></table></div>`;
   await page('regions/', layout({ title: 'AWS IP ranges by region (all regions) | ' + SITE.name, description: `IPv4 and IPv6 address ranges for every AWS region, from us-east-1 to the newest region codes in ip-ranges.json. Updated ${fmtDate(UPDATED)}.`, path: 'regions/', body, updated: UPDATED, jsonld: [crumbsLD(items)] }), 0.9);
@@ -423,7 +423,7 @@ async function servicePages() {
     const regs = REGIONS.filter((r) => list.some((x) => x.region === r));
     const dir = `services/${slug(sv)}/`;
     const title = `AWS ${sv} IP ranges${sv === 'AMAZON' ? ' (every AWS range)' : `: ${serviceLabel(sv)}`}`;
-    const items = [['', 'RangeFinder'], ['services/', 'Services'], [dir, sv]];
+    const items = [['', 'IP Map'], ['services/', 'Services'], [dir, sv]];
     const note = {
       AMAZON: 'AMAZON is the superset: every other service code is also in it, and some ranges appear only here.',
       API_GATEWAY: 'AWS documents these addresses as egress only: they are where API Gateway calls your backends from, not where clients connect to.',
@@ -451,7 +451,7 @@ ${regs.map((r) => { const ss = stats(list.filter((x) => x.region === r)); return
     }), 0.8);
     await files(dir, list, { service: sv });
   }
-  const items = [['', 'RangeFinder'], ['services/', 'Services']];
+  const items = [['', 'IP Map'], ['services/', 'Services']];
   const body = `${crumbs(items)}<header class="page-head"><h1>AWS IP ranges by service</h1><p class="lede">${SERVICES.length} service codes appear in ip-ranges.json. AMAZON contains all of them.</p></header>
 <div class="tw"><table class="svc-table"><thead><tr><th>Service code</th><th>Service</th><th>IPv4 prefixes</th><th>IPv6 prefixes</th><th>IPv4 addresses</th></tr></thead><tbody>${SERVICES.map((sv) => { const s = stats(rows.filter((x) => x.services.includes(sv))); return `<tr><td><a href="${href(`services/${slug(sv)}/`)}"><code>${sv}</code></a></td><td>${esc(serviceLabel(sv))}</td><td>${fmt(s.v4p)}</td><td>${fmt(s.v6p)}</td><td>${fmtAddrs(s.v4a)}</td></tr>`; }).join('')}</tbody></table></div>`;
   await page('services/', layout({ title: 'AWS IP ranges by service (S3, CloudFront, EC2 and more) | ' + SITE.name, description: `IP ranges for every AWS service code in ip-ranges.json: CloudFront, S3, EC2, Route 53, API Gateway, DynamoDB and more. Updated ${fmtDate(UPDATED)}.`, path: 'services/', body, updated: UPDATED, jsonld: [crumbsLD(items)] }), 0.9);
@@ -473,7 +473,7 @@ function eventItem(ev, { cap = 80 } = {}) {
 async function changePages() {
   const years = [...new Set(EVENTS.map((e) => yearOf(e.t)))].sort().reverse();
   const yearNav = `<nav class="years" aria-label="Change log by year">${years.map((y) => `<a href="${href(`changes/${y}/`)}">${y} <small>${fmt(EVENTS.filter((e) => yearOf(e.t) === y).length)}</small></a>`).join('')}</nav>`;
-  const items = [['', 'RangeFinder'], ['changes/', 'Changes']];
+  const items = [['', 'IP Map'], ['changes/', 'Changes']];
   const body = `${crumbs(items)}<header class="page-head"><h1>AWS IP range change log</h1><p class="lede">Every recorded change to ip-ranges.json since ${fmtMonth(ARCHIVE_START)}${CONT_SINCE ? ` (near-complete since ${CONT_SINCE})` : ''}, with exactly which prefixes were added and removed: ${fmt(EVENTS.length)} changes so far. Subscribe with the <a href="${href('changes.xml')}">Atom feed</a>, or explore any date on the <a href="${href('history/')}">History</a> page.</p>${yearNav}</header>
 <section><h2 class="section-title">Latest changes</h2><ol class="events full">${EVENTS.slice(0, 60).map((ev) => eventItem(ev)).join('')}</ol><p><a class="btn ghost" href="${href(`changes/${years[0]}/`)}">All ${years[0]} changes</a></p></section>
 <section><h2 class="section-title">Month by month</h2>${ledgerTable(400)}</section>`;
@@ -482,7 +482,7 @@ async function changePages() {
   for (const y of years) {
     const evs = EVENTS.filter((e) => yearOf(e.t) === y);
     const add = evs.reduce((n, e) => n + e.added.length, 0), rem = evs.reduce((n, e) => n + e.removed.length, 0);
-    const it = [['', 'RangeFinder'], ['changes/', 'Changes'], [`changes/${y}/`, y]];
+    const it = [['', 'IP Map'], ['changes/', 'Changes'], [`changes/${y}/`, y]];
     const b2 = `${crumbs(it)}<header class="page-head"><h1>AWS IP range changes in ${y}</h1><p class="lede">${fmt(evs.length)} updates to ip-ranges.json in ${y}: ${fmt(add)} entries added and ${fmt(rem)} removed.</p>${yearNav}</header>
 <section><ol class="events full">${evs.map((ev) => eventItem(ev, { cap: 40 })).join('')}</ol></section>`;
     await page(`changes/${y}/`, layout({ title: `AWS IP range changes in ${y} | ${SITE.name}`, description: `All ${fmt(evs.length)} AWS IP range updates in ${y}, with the prefixes added (${fmt(add)}) and removed (${fmt(rem)}) each time.`, path: `changes/${y}/`, body: b2, updated: UPDATED, jsonld: [crumbsLD(it)] }), 0.6);
@@ -494,7 +494,7 @@ async function changePages() {
 
 // ---------- history (time machine) ----------
 async function historyPage() {
-  const items = [['', 'RangeFinder'], ['history/', 'History']];
+  const items = [['', 'IP Map'], ['history/', 'History']];
   const before = VERS.slice(0, CONT_V), after = VERS.slice(CONT_V);
   const n = (list, s) => list.filter((v) => v[2] === s).length;
   // gaps after continuous tracking began (tracker outages), merged into date windows
@@ -540,7 +540,7 @@ ${CONT_I >= 0 ? `<p>AWS doesn't publish old versions of the file (its documentat
 
 // ---------- API page ----------
 async function apiPage() {
-  const items = [['', 'RangeFinder'], ['api/', 'API']];
+  const items = [['', 'IP Map'], ['api/', 'API']];
   const ep = [
     ['ip-ranges.json', 'Byte-for-byte mirror of the latest AWS file.'],
     ['ipv4.txt', 'Every AWS IPv4 prefix, one per line.'],
@@ -613,7 +613,7 @@ async function assets() {
   await fs.cp(stat, DIST, { recursive: true }).catch(() => {});
   await write('robots.txt', `User-agent: *\nAllow: /\nSitemap: ${abs('sitemap.xml')}\n`);
   await write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${pages.map((p) => `<url><loc>${p.loc}</loc><lastmod>${UPDATED.slice(0, 10)}</lastmod><priority>${p.priority.toFixed(1)}</priority></url>`).join('\n')}\n</urlset>\n`);
-  await write('site.webmanifest', JSON.stringify({ name: SITE.name, short_name: 'RangeFinder', start_url: SITE.base, display: 'standalone', background_color: '#f6f1e7', theme_color: '#f6f1e7', icons: [{ src: `${SITE.base}favicon.svg`, sizes: 'any', type: 'image/svg+xml' }] }));
+  await write('site.webmanifest', JSON.stringify({ name: SITE.name, short_name: 'IP Map', start_url: SITE.base, display: 'standalone', background_color: '#f6f1e7', theme_color: '#f6f1e7', icons: [{ src: `${SITE.base}favicon.svg`, sizes: 'any', type: 'image/svg+xml' }] }));
   await write('404.html', layout({ title: 'Not found | ' + SITE.name, description: 'This page is not on the map. Search AWS IP ranges or browse by region and service.', path: '404.html', noindex: true, updated: UPDATED, body: `<header class="page-head"><h1>That page isn't on the map.</h1><p class="lede">Try the <a href="${href()}">search</a>, or browse <a href="${href('regions/')}">regions</a> and <a href="${href('services/')}">services</a>.</p></header>` }));
   await write('.nojekyll', '');
 }

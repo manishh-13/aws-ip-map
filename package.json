@@ -1,5 +1,5 @@
 {
-  "name": "aws-rangefinder",
+  "name": "aws-ip-map",
   "version": "1.0.0",
   "description": "Live, searchable map of every AWS public IP range (ip-ranges.json): lookup, history since 2015, allowlist builder and plain-text API.",
   "type": "module",
