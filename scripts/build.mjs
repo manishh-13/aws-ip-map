@@ -613,6 +613,11 @@ async function assets() {
   await fs.cp(stat, DIST, { recursive: true }).catch(() => {});
   await write('robots.txt', `User-agent: *\nAllow: /\nSitemap: ${abs('sitemap.xml')}\n`);
   await write('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${pages.map((p) => `<url><loc>${p.loc}</loc><lastmod>${UPDATED.slice(0, 10)}</lastmod><priority>${p.priority.toFixed(1)}</priority></url>`).join('\n')}\n</urlset>\n`);
+  // live README badges, read by shields.io (https://shields.io/badges/endpoint-badge)
+  const badge = (label, message, color) => JSON.stringify({ schemaVersion: 1, label, message, color });
+  await write('badges/ranges.json', badge('AWS IP ranges', `${fmt(SUM.v4p + SUM.v6p)} prefixes`, 'ff9900'));
+  await write('badges/synced.json', badge('synced with AWS', fmtDate(UPDATED), '2ea44f'));
+  await write('badges/history.json', badge('history', `${fmt(VERS.length)} versions since ${ARCHIVE_START.slice(0, 4)}`, '0a84ff'));
   await write('site.webmanifest', JSON.stringify({ name: SITE.name, short_name: 'IP Map', start_url: SITE.base, display: 'standalone', background_color: '#f6f1e7', theme_color: '#f6f1e7', icons: [{ src: `${SITE.base}favicon.svg`, sizes: 'any', type: 'image/svg+xml' }] }));
   await write('404.html', layout({ title: 'Not found | ' + SITE.name, description: 'This page is not on the map. Search AWS IP ranges or browse by region and service.', path: '404.html', noindex: true, updated: UPDATED, body: `<header class="page-head"><h1>That page isn't on the map.</h1><p class="lede">Try the <a href="${href()}">search</a>, or browse <a href="${href('regions/')}">regions</a> and <a href="${href('services/')}">services</a>.</p></header>` }));
   await write('.nojekyll', '');
