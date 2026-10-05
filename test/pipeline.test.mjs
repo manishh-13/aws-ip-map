@@ -39,7 +39,7 @@ test('update + build pipeline', async () => {
     const out = path.join(tmp, 'dist');
     await run(process.execPath, ['scripts/build.mjs'], { cwd: ROOT, env: { ...env, DATA_DIR: data, OUT_DIR: out } });
     const home = await fs.readFile(path.join(out, 'index.html'), 'utf8');
-    assert.match(home, /<title>AWS IP address ranges lookup/);
+    assert.match(home, /<title>AWS IP Ranges Lookup/);
     assert.match(home, /application\/ld\+json/);
     assert.match(await fs.readFile(path.join(out, 'services/cloudfront/ipv4.txt'), 'utf8'), /^13\.32\.0\.0\/15\n$/);
     assert.match(await fs.readFile(path.join(out, 'regions/us-east-1/amazon/ipv4.txt'), 'utf8'), /^3\.0\.0\.0\/24\n$/);

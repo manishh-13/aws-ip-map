@@ -102,6 +102,8 @@ const NBGS = [...new Set(rows.map((r) => r.nbg))].sort();
 const RI = Object.fromEntries(REGIONS.map((r, i) => [r, i]));
 const PAL = regionPalette(REGIONS, geoOf, GEOS);
 const rgb = (c) => `rgb(${c.join(' ')})`;
+// the product name people search for ('Amazon CloudFront', 'Amazon API Gateway'), without the code or a parenthetical
+const svcTitleName = (sv) => (sv === 'AMAZON' ? 'All AWS' : serviceLabel(sv).replace(/\s*\(.*\)$/, ''));
 
 function stats(list) {
   const v4 = list.filter((r) => r.t.v === 4), v6 = list.filter((r) => r.t.v === 6);
@@ -342,7 +344,7 @@ ${faqHtml}`;
     faqLD,
   ];
   await page('', layout({
-    title: 'AWS IP address ranges lookup: search any AWS IP, CIDR, region or service | ' + SITE.name,
+    title: 'AWS IP Ranges Lookup: is this IP address AWS? | ' + SITE.name,
     description: `Check if an IP address belongs to AWS. Instant AWS IP lookup with region, service and network border group, across all ${fmt(SUM.v4p + SUM.v6p)} AWS IPv4 and IPv6 ranges. Allowlist builder, downloads and live change tracking.`,
     path: '', body, jsonld: ld, updated: UPDATED, bodyClass: 'home',
   }), 1.0);
@@ -390,12 +392,12 @@ ${neighbours.length ? `<section class="related"><h2 class="section-title">Nearby
       const sub = list.filter((x) => x.services.includes(sv));
       const ss = stats(sub);
       const sdir = `${dir}${slug(sv)}/`;
-      const t2 = `AWS ${sv} IP ranges in ${r}${l.announced ? ` (${l.name})` : ''}`;
+      const t2 = `${svcTitleName(sv)} IP ranges in ${r}${l.announced ? `, ${l.name}` : ''}`;
       const items2 = [['', 'IP Map'], ['regions/', 'Regions'], [dir, r], [sdir, sv]];
       const body2 = `${crumbs(items2)}
 <header class="page-head" style="--c:${rgb(PAL[r].full)}">
   <p class="eyebrow">${esc(serviceLabel(sv))} in ${esc(l.full)}</p>
-  <h1>AWS <span class="nw">${esc(sv)}</span> IP ranges in <span class="nw">${esc(r)}</span>${l.announced ? ` (${esc(l.name)})` : ''}</h1>
+  <h1>${esc(svcTitleName(sv))} IP ranges in <span class="nw">${esc(r)}</span>${l.announced ? `, ${esc(l.name)}` : ''}</h1>
   <p class="lede">${fmt(ss.v4p)} IPv4 prefixes (${fmtAddrs(ss.v4a)} addresses) and ${fmt(ss.v6p)} IPv6 prefixes tagged <code>${esc(sv)}</code> in <a href="${href(dir)}">${esc(r)}</a>, as of <time datetime="${UPDATED}">${fmtDate(UPDATED)}</time>. See this service in <a href="${href(`services/${slug(sv)}/`)}">every region</a>.</p>
   ${downloads(sdir, `${sv} in ${r}`)}
 </header>
@@ -422,7 +424,7 @@ async function servicePages() {
     const s = stats(list);
     const regs = REGIONS.filter((r) => list.some((x) => x.region === r));
     const dir = `services/${slug(sv)}/`;
-    const title = `AWS ${sv} IP ranges${sv === 'AMAZON' ? ' (every AWS range)' : `: ${serviceLabel(sv)}`}`;
+    const title = `${svcTitleName(sv)} IP ranges (${sv})`;
     const items = [['', 'IP Map'], ['services/', 'Services'], [dir, sv]];
     const note = {
       AMAZON: 'AMAZON is the superset: every other service code is also in it, and some ranges appear only here.',
