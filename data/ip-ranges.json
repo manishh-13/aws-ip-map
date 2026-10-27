@@ -1,6 +1,6 @@
 {
-  "syncToken": "1793107625",
-  "createDate": "2026-10-27-13-27-05",
+  "syncToken": "1793122025",
+  "createDate": "2026-10-27-17-27-05",
   "prefixes": [
     {
       "ip_prefix": "3.4.12.4/32",
@@ -61173,6 +61173,12 @@
       "network_border_group": "ap-northeast-1"
     },
     {
+      "ip_prefix": "13.197.100.0/22",
+      "region": "ap-northeast-1",
+      "service": "EFS",
+      "network_border_group": "ap-northeast-1"
+    },
+    {
       "ip_prefix": "54.116.148.128/25",
       "region": "ap-northeast-2",
       "service": "EFS",
@@ -105336,6 +105342,12 @@
     },
     {
       "ipv6_prefix": "2406:da14:1964:d500::/56",
+      "region": "ap-northeast-1",
+      "service": "EFS",
+      "network_border_group": "ap-northeast-1"
+    },
+    {
+      "ipv6_prefix": "2406:da14:1e82:a000::/56",
       "region": "ap-northeast-1",
       "service": "EFS",
       "network_border_group": "ap-northeast-1"
